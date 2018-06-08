@@ -12,6 +12,7 @@
         android:padding="8dp"
         android:text=""
         android:textAllCaps="true"
+        android:background="@android:color/holo_blue_dark"
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:textColor="#FFF"
         android:textStyle="bold"

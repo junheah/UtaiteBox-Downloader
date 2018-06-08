@@ -33,6 +33,7 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -43,10 +44,14 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+
+import javax.net.ssl.HttpsURLConnection;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+    private static int version = 1;
     DownloadManager dlManager;
     String sessionKey,userName;
     int searchMode = 0;
@@ -72,7 +77,7 @@ public class MainActivity extends AppCompatActivity
         searchButton = findViewById(R.id.searchButton);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
+        /*
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -81,7 +86,7 @@ public class MainActivity extends AppCompatActivity
                         .setAction("Action", null).show();
             }
         });
-
+        */
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
@@ -97,27 +102,9 @@ public class MainActivity extends AppCompatActivity
         if (ContextCompat.checkSelfPermission(MainActivity.this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
-
-            // Should we show an explanation?
-            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-
-                // Show an expanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-
-            } else {
-
-                // No explanation needed, we can request the permission.
-
                 ActivityCompat.requestPermissions(MainActivity.this,
                         new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                         13132);
-
-                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
-            }
         }
 
         // session
@@ -141,7 +128,7 @@ public class MainActivity extends AppCompatActivity
                 String query = searchBox.getText().toString();
                 if(query.length()>0) {
                     searchAll search = new searchAll();
-                    search.execute("http://utaitebox.com/api/search/all/" + query);
+                    search.execute(query);
                 }
             }
         });
@@ -161,6 +148,7 @@ public class MainActivity extends AppCompatActivity
                         break;
                     case 2:
                     case 3:
+                        Toast.makeText(getApplicationContext(), "다운로드를 시작합니다.", Toast.LENGTH_SHORT).show();
                         try{
                         Item dlitem = mAdapter.getItem(position);
                         String dlkey = dlitem.getKey();
@@ -197,6 +185,7 @@ public class MainActivity extends AppCompatActivity
                             .setOngoing(false)
                             .setSmallIcon(R.drawable.ic_launcher_foreground);
                     notificationManager.notify(13155431, stat.build());
+                    Toast.makeText(getApplicationContext(), "다운로드 완료", Toast.LENGTH_SHORT).show();
                 }
 
             }
@@ -208,15 +197,10 @@ public class MainActivity extends AppCompatActivity
 
     }
 
+    @Override
     protected void onDestroy() {
-
-
         super.onDestroy();
-
         unregisterReceiver(onComplete);
-
-
-
     }
 
     @Override
@@ -244,7 +228,8 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.check_update) {
+            new updateCheck().execute();
             return true;
         }
 
@@ -256,18 +241,18 @@ public class MainActivity extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-        if (id == R.id.bySong) {
-            searchMode = 0;
-
-        } else if (id == R.id.byArtist) {
-            searchMode = 1;
-        } else if (id == R.id.logOut) {
+        if (id == R.id.search) {
+            //search mode
+        } else if (id == R.id.playList) {
+            //playlist mode
+        } else if (id == R.id.logIn) {
+            //login mode wip
             sessionKey = "";
             SharedPreferences.Editor editor = sharedPref.edit();
             editor.putString(getString(R.string.session_file_key), "");
             editor.commit();
         } else if (id == R.id.checkUpdate) {
-
+            new updateCheck().execute();
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -287,7 +272,7 @@ public class MainActivity extends AppCompatActivity
 
         protected String doInBackground(String... params) {
             try {
-                JSONObject data = new JSONObject(jsonGet(params[0]));
+                JSONObject data = new JSONObject(httpGet("http://utaitebox.com/api/search/all/"+ URLEncoder.encode(params[0], "UTF-8")));
                 JSONArray songs = data.getJSONArray("music");
 
 
@@ -324,6 +309,48 @@ public class MainActivity extends AppCompatActivity
             resultList.setAdapter(mAdapter);
         }
     }
+    private class updateCheck extends AsyncTask<Void, Integer, Integer> {
+        protected void onPreExecute() {
+            super.onPreExecute();
+            pd = new ProgressDialog(MainActivity.this);
+            pd.setMessage("업데이트 확인중");
+            pd.setCancelable(false);
+            pd.show();
+        }
+
+        protected Integer doInBackground(Void... params) {
+            try {
+                String rawdata = httpsGet("https://raw.githubusercontent.com/junheah/UtaiteBox-Downloader/master/README.md");
+                JSONObject data = new JSONObject(rawdata);
+                int lver = data.getInt("version");
+                String link = data.getString("link");
+                if(version<lver){
+                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(link));
+                    startActivity(browserIntent);
+                    return 1;
+                }
+            }catch(Exception e){
+                return -1;
+            }return 0;
+        }
+        protected void onPostExecute(Integer result) {
+            super.onPostExecute(result);
+            switch(result){
+                case -1:
+                    Toast.makeText(getApplicationContext(), "오류가 발생했습니다. 나중에 다시 시도해 주세요.", Toast.LENGTH_SHORT).show();
+                    break;
+                case 0:
+                    Toast.makeText(getApplicationContext(), "최신버전 입니다.", Toast.LENGTH_SHORT).show();
+                    break;
+                case 1:
+                    Toast.makeText(getApplicationContext(), "새로운 버전을 찾았습니다. 다운로드 페이지로 이동합니다.", Toast.LENGTH_SHORT).show();
+                    break;
+            }
+            if (pd.isShowing()){
+                pd.dismiss();
+            }
+        }
+    }
 
 
     private class selectSong extends AsyncTask<Integer, String, String> {
@@ -343,7 +370,7 @@ public class MainActivity extends AppCompatActivity
             int index=0;
             while (true) {
                 index++;
-                String rawdata = jsonGet("http://utaitebox.com/api/source/" + params[0] + "/list/" + index);
+                String rawdata = httpGet("http://utaitebox.com/api/source/" + params[0] + "/list/" + index);
                 if(rawdata.matches("\\{\"status\":1\\}")) break;
                 try {
                     JSONArray data = new JSONArray(rawdata);
@@ -385,12 +412,12 @@ public class MainActivity extends AppCompatActivity
         }
 
         protected String doInBackground(Integer... params) {
-            //String data = jsonGet("http://utaitebox.com/api/source/"+params[0]);
+            //String data = httpGet("http://utaitebox.com/api/source/"+params[0]);
             //다국어로 제목 불러올 수 있음
             int index=0;
             while (true) {
                 index++;
-                String rawdata = jsonGet("http://utaitebox.com/api/artist/" + params[0] + "/list/" + index);
+                String rawdata = httpGet("http://utaitebox.com/api/artist/" + params[0] + "/list/" + index);
                 if(rawdata.matches("\\{\"status\":1\\}")) break;
                 try {
                     JSONArray data = new JSONArray(rawdata);
@@ -422,13 +449,12 @@ public class MainActivity extends AppCompatActivity
     }
 
 
-    public String jsonGet(String urlin){
+    public String httpGet(String urlin){
         HttpURLConnection connection = null;
         BufferedReader reader = null;
 
         try {
             URL url = new URL(urlin);
-
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Accept-Encoding", "*");
@@ -461,4 +487,39 @@ public class MainActivity extends AppCompatActivity
         return null;
     }
 
+
+    public String httpsGet(String urlin){
+        HttpsURLConnection connection = null;
+        BufferedReader reader = null;
+        try {
+            URL url = new URL(urlin);
+            connection = (HttpsURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Accept-Encoding", "*");
+            connection.setRequestProperty("Accept", "*");
+            connection.connect();
+            InputStream stream = connection.getInputStream();
+            reader = new BufferedReader(new InputStreamReader(stream));
+            StringBuffer buffer = new StringBuffer();
+            String line = "";
+            while ((line = reader.readLine()) != null) {
+                buffer.append(line);
+            }
+            return buffer.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+            try {
+                if (reader != null) {
+                    reader.close();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
 }

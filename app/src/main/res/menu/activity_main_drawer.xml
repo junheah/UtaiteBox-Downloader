@@ -2,20 +2,22 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:showIn="navigation_view">
-    <item android:title = "검색 모드" android:enabled="false"></item>
     <group android:checkableBehavior="single">
         <item
-            android:id="@+id/bySong"
-            android:title="노래 제목" />
+            android:id="@+id/search"
+            android:title="검색"
+            android:checked="true"/>
         <item
-            android:id="@+id/byArtist"
-            android:title="아티스트 이름" />
+            android:id="@+id/playList"
+            android:title="재생목록"
+            android:enabled="false"/>
     </group>
     <item android:title="설정">
         <menu>
             <item
-                android:id="@+id/logOut"
-                android:title="로그아웃" />
+                android:id="@+id/logIn"
+                android:title="로그인"
+                android:enabled="false"/>
             <item
                 android:id="@+id/checkUpdate"
                 android:title="업데이트 확인" />

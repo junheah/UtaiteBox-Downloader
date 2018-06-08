@@ -2,8 +2,8 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/action_settings"
+        android:id="@+id/check_update"
         android:orderInCategory="100"
-        android:title="@string/action_settings"
+        android:title="업데이트 확인"
         app:showAsAction="never" />
 </menu>
