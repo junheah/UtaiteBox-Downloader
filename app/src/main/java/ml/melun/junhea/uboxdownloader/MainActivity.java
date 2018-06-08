@@ -1,12 +1,25 @@
 package ml.melun.junhea.uboxdownloader;
 
+import android.Manifest;
+import android.app.DownloadManager;
+import android.app.NotificationManager;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.content.ContextCompat;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -16,6 +29,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -27,10 +41,13 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+    DownloadManager dlManager;
     String sessionKey,userName;
     int searchMode = 0;
     SharedPreferences sharedPref;
@@ -39,9 +56,16 @@ public class MainActivity extends AppCompatActivity
     EditText searchBox;
     ProgressDialog pd;
     JSONObject data;
+    CustomAdapter mAdapter;
+    ArrayList<Long> dllist= new ArrayList<>();
+    NotificationCompat.Builder stat;
+    NotificationManagerCompat notificationManager;
+    BroadcastReceiver onComplete;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        notificationManager = NotificationManagerCompat.from(MainActivity.this);
+        dlManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
         setContentView(R.layout.activity_main);
         searchBox = findViewById(R.id.searchBox);
         resultList = findViewById(R.id.resultList);
@@ -70,6 +94,32 @@ public class MainActivity extends AppCompatActivity
 
 
         ///////CODE STARTS HERE
+        if (ContextCompat.checkSelfPermission(MainActivity.this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+
+                // Show an expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        13132);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        }
+
         // session
         sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         sessionKey = sharedPref.getString(getString(R.string.session_file_key),"");
@@ -95,6 +145,75 @@ public class MainActivity extends AppCompatActivity
                 }
             }
         });
+        resultList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Item item = mAdapter.getItem(position);
+                System.out.println(item.getName()+","+item.getType());
+                switch(item.getType()){
+                    case 0:
+                        int sid = item.getId();
+                        new selectSong().execute(sid);
+                        break;
+                    case 1:
+                        int aid = item.getId();
+                        new selectArtist().execute(aid);
+                        break;
+                    case 2:
+                    case 3:
+                        try{
+                        Item dlitem = mAdapter.getItem(position);
+                        String dlkey = dlitem.getKey();
+                        String dltitle = dlitem.getName();
+                        Uri dlurl = Uri.parse("http://utaitebox.com/api/play/stream/"+dlkey);
+                        DownloadManager.Request request = new DownloadManager.Request(dlurl);
+                        request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
+                        request.setAllowedOverRoaming(false);
+                        request.setTitle("우타이테 박스 다운로더");
+                        request.setDescription(dltitle);
+                        request.setVisibleInDownloadsUi(true);
+                        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/UtaiteBoxDownloads/"+dltitle+".mp3");
+                        dllist.add(dlManager.enqueue(request));
+                        break;
+                        }catch(Exception e){
+                            e.printStackTrace();
+                        }
+
+                }
+            }
+        });
+
+        onComplete = new BroadcastReceiver() {
+
+            public void onReceive(Context ctxt, Intent intent) {
+                long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+                dllist.remove(referenceId);
+                if (dllist.isEmpty())
+                {
+                    stat = new NotificationCompat.Builder(MainActivity.this, "UtaiteBox Downloader");
+                    stat.setContentTitle("우타이테 박스 다운로더")
+                            .setContentText("모든 다운로드가 완료되었습니다")
+                            .setPriority(NotificationCompat.PRIORITY_LOW)
+                            .setOngoing(false)
+                            .setSmallIcon(R.drawable.ic_launcher_foreground);
+                    notificationManager.notify(13155431, stat.build());
+                }
+
+            }
+        };
+        registerReceiver(onComplete,
+                new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+
+
+
+    }
+
+    protected void onDestroy() {
+
+
+        super.onDestroy();
+
+        unregisterReceiver(onComplete);
 
 
 
@@ -163,11 +282,36 @@ public class MainActivity extends AppCompatActivity
             pd.setMessage("로드중");
             pd.setCancelable(false);
             pd.show();
+            mAdapter = new CustomAdapter(MainActivity.this);
         }
 
         protected String doInBackground(String... params) {
-            String data = jsonGet(params[0]);
-            return data;
+            try {
+                JSONObject data = new JSONObject(jsonGet(params[0]));
+                JSONArray songs = data.getJSONArray("music");
+
+
+                mAdapter.addSectionHeaderItem(new Item(0,"노래",-1,null,null));
+                for (int i=0; i<songs.length();i++){
+                    JSONObject obj = songs.getJSONObject(i);
+                    int id = obj.getInt("_source_id");
+                    String name = obj.getString("song_original");
+                    mAdapter.addItem(new Item(id,name,0,"null",null));
+                }
+                mAdapter.addSectionHeaderItem(new Item(0,"아티스트",-1,null,null));
+                JSONArray artists = data.getJSONArray("artist");
+                for (int i=0; i<artists.length();i++){
+                    JSONObject obj = artists.getJSONObject(i);
+                    int id = obj.getInt("_aid");
+                    String name = obj.getString("artist_en");
+                    String thumb = obj.getString("artist_cover");
+                    mAdapter.addItem(new Item(id,name,1,thumb,null));
+                }
+
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            return null;
         }
 
         @Override
@@ -176,13 +320,104 @@ public class MainActivity extends AppCompatActivity
             if (pd.isShowing()){
                 pd.dismiss();
             }
-            try {
-                JSONObject data = new JSONObject(result);
-                JSONArray songs = data.getJSONArray("music");
-                JSONArray artists = data.getJSONArray("artist");
-            }catch (Exception e){
-                //
+
+            resultList.setAdapter(mAdapter);
+        }
+    }
+
+
+    private class selectSong extends AsyncTask<Integer, String, String> {
+        protected void onPreExecute() {
+            super.onPreExecute();
+            pd = new ProgressDialog(MainActivity.this);
+            pd.setMessage("로드중");
+            pd.setCancelable(false);
+            pd.show();
+            mAdapter = new CustomAdapter(MainActivity.this);
+            mAdapter.addSectionHeaderItem(new Item(0,"검색결과",-1,null,null));
+        }
+
+        protected String doInBackground(Integer... params) {
+            //String data = jsonGet("http://utaitebox.com/api/source/"+params[0]);
+            //다국어로 제목 불러올 수 있음
+            int index=0;
+            while (true) {
+                index++;
+                String rawdata = jsonGet("http://utaitebox.com/api/source/" + params[0] + "/list/" + index);
+                if(rawdata.matches("\\{\"status\":1\\}")) break;
+                try {
+                    JSONArray data = new JSONArray(rawdata);
+                    //mAdapter.addSectionHeaderItem(new Item(0,"노래",-1,null));
+                    for (int i = 0; i < data.length(); i++) {
+                        JSONObject obj = data.getJSONObject(i);
+                        int id = obj.getInt("_source_id");
+                        String artist = obj.getString("artist_en");
+                        String name = obj.getString("song_original");
+                        String thumb = obj.getString("cover");
+                        String key = obj.getString("key");
+                        mAdapter.addItem(new Item(id, artist + " - " + name, 2, thumb, key));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+            if (pd.isShowing()){
+                pd.dismiss();
+            }
+            resultList.setAdapter(mAdapter);
+        }
+    }
+    private class selectArtist extends AsyncTask<Integer, String, String> {
+        protected void onPreExecute() {
+            super.onPreExecute();
+            pd = new ProgressDialog(MainActivity.this);
+            pd.setMessage("로드중");
+            pd.setCancelable(false);
+            pd.show();
+            mAdapter = new CustomAdapter(MainActivity.this);
+            mAdapter.addSectionHeaderItem(new Item(0,"검색결과",-1,null,null));
+        }
+
+        protected String doInBackground(Integer... params) {
+            //String data = jsonGet("http://utaitebox.com/api/source/"+params[0]);
+            //다국어로 제목 불러올 수 있음
+            int index=0;
+            while (true) {
+                index++;
+                String rawdata = jsonGet("http://utaitebox.com/api/artist/" + params[0] + "/list/" + index);
+                if(rawdata.matches("\\{\"status\":1\\}")) break;
+                try {
+                    JSONArray data = new JSONArray(rawdata);
+                    //mAdapter.addSectionHeaderItem(new Item(0,"노래",-1,null));
+                    for (int i = 0; i < data.length(); i++) {
+                        JSONObject obj = data.getJSONObject(i);
+                        int id = obj.getInt("_source_id");
+                        String artist = obj.getString("artist_en");
+                        String name = obj.getString("song_original");
+                        String thumb = obj.getString("cover");
+                        String key = obj.getString("key");
+                        mAdapter.addItem(new Item(id, artist + " - " + name, 3, thumb, key));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+            if (pd.isShowing()){
+                pd.dismiss();
+            }
+            resultList.setAdapter(mAdapter);
         }
     }
 

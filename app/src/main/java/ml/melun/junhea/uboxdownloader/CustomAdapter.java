@@ -11,15 +11,12 @@ import java.util.TreeSet;
 
 /**
  * Created by P.Thinesh on 30/11/2016.
+ * sourcd : http://learnlinky.com/2016/11/listview-section-header-android/
  */
 
 public class CustomAdapter extends BaseAdapter {
 
-    private static final int TYPE_ITEM = 0;
-    private static final int TYPE_HEADER = 1;
-
-    private ArrayList<TransactionObject> mData = new ArrayList<TransactionObject>();
-    private TreeSet<Integer> sectionHeader = new TreeSet<Integer>();
+    private ArrayList<Item> mData = new ArrayList<>();
     private LayoutInflater mInflater;
 
     public CustomAdapter(Context context) {
@@ -27,26 +24,18 @@ public class CustomAdapter extends BaseAdapter {
                 .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
 
-    public void addItem(final TransactionObject item) {
+    public void addItem(final Item item) {
         mData.add(item);
-        notifyDataSetChanged();
     }
 
-    public void addSectionHeaderItem(final TransactionObject item) {
+    public void addSectionHeaderItem(final Item item) {
         mData.add(item);
-        sectionHeader.add(mData.size() - 1);
-        notifyDataSetChanged();
     }
-
     @Override
     public int getItemViewType(int position) {
-        return sectionHeader.contains(position) ? TYPE_HEADER : TYPE_ITEM;
+        return mData.get(position).getType();
     }
 
-    @Override
-    public int getViewTypeCount() {
-        return 2;
-    }
 
     @Override
     public int getCount() {
@@ -54,7 +43,7 @@ public class CustomAdapter extends BaseAdapter {
     }
 
     @Override
-    public TransactionObject getItem(int position) {
+    public Item getItem(int position) {
         return mData.get(position);
     }
 
@@ -65,19 +54,34 @@ public class CustomAdapter extends BaseAdapter {
 
     public View getView(int position, View convertView, ViewGroup parent) {
         ViewHolder holder = null;
-        int rowType = getItemViewType(position);
-
+        int Type = getItemViewType(position);
         if (convertView == null) {
             holder = new ViewHolder();
-            switch (rowType) {
-                case TYPE_ITEM:
-                    convertView = mInflater.inflate(R.layout.row_item, null);
+            switch (Type) {
+                //todo: 타입 별로 각각 레이아웃 만들기
+                case -1:
+                    convertView = mInflater.inflate(R.layout.list_header, null);
+                    holder.textView = (TextView) convertView.findViewById(R.id.textSeparator);
+                    break;
+                case 0:
+                    convertView = mInflater.inflate(R.layout.list_item, null);
                     holder.textView = (TextView) convertView.findViewById(R.id.txtName);
                     holder.txtValue = (TextView) convertView.findViewById(R.id.txtValue);
                     break;
-                case TYPE_HEADER:
-                    convertView = mInflater.inflate(R.layout.header_item, null);
-                    holder.textView = (TextView) convertView.findViewById(R.id.textSeparator);
+                case 1:
+                    convertView = mInflater.inflate(R.layout.list_item, null);
+                    holder.textView = (TextView) convertView.findViewById(R.id.txtName);
+                    holder.txtValue = (TextView) convertView.findViewById(R.id.txtValue);
+                    break;
+                case 2:
+                    convertView = mInflater.inflate(R.layout.list_item, null);
+                    holder.textView = (TextView) convertView.findViewById(R.id.txtName);
+                    holder.txtValue = (TextView) convertView.findViewById(R.id.txtValue);
+                    break;
+                case 3:
+                    convertView = mInflater.inflate(R.layout.list_item, null);
+                    holder.textView = (TextView) convertView.findViewById(R.id.txtName);
+                    holder.txtValue = (TextView) convertView.findViewById(R.id.txtValue);
                     break;
             }
             convertView.setTag(holder);
@@ -85,14 +89,15 @@ public class CustomAdapter extends BaseAdapter {
             holder = (ViewHolder) convertView.getTag();
         }
 
-        if(rowType == TYPE_ITEM){
-            holder.textView.setText(mData.get(position).gettName());
-            holder.txtValue.setText(""+mData.get(position).getAmount());
-        }else if(rowType == TYPE_HEADER){
-            holder.textView.setText(mData.get(position).gettName());
+        if(Type == -1){
+            holder.textView.setText(mData.get(position).getName());
+        }else if(Type==0 || Type==1){
+            holder.textView.setText(mData.get(position).getName());
+            holder.txtValue.setText(""+mData.get(position).getId());
+        }else if(Type==2 || Type==3){
+            holder.textView.setText(mData.get(position).getName());
+            holder.txtValue.setText(mData.get(position).getKey());
         }
-
-
         return convertView;
     }
 
