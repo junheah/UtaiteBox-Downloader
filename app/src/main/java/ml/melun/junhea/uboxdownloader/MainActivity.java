@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -47,7 +48,7 @@ import javax.net.ssl.HttpsURLConnection;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
-    private static int version = 1;
+    private static int version;
     DownloadManager dlManager;
     String sessionKey,userName;
     int searchMode = 0;
@@ -65,6 +66,13 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //get version code
+        try {
+            PackageInfo pInfo = this.getPackageManager().getPackageInfo(getPackageName(), 0);
+            version = pInfo.versionCode;
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
         notificationManager = NotificationManagerCompat.from(MainActivity.this);
         dlManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
         setContentView(R.layout.activity_main);
