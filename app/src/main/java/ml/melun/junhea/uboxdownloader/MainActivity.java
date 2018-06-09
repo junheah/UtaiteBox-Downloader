@@ -316,7 +316,7 @@ public class MainActivity extends AppCompatActivity
 
         protected Integer doInBackground(Void... params) {
             try {
-                String rawdata = httpsGet("https://raw.githubusercontent.com/junheah/UtaiteBox-Downloader/master/README.md");
+                String rawdata = httpsGet("https://raw.githubusercontent.com/junheah/UtaiteBox-Downloader/master/versioninfo.json");
                 JSONObject data = new JSONObject(rawdata);
                 int lver = data.getInt("version");
                 String link = data.getString("link");
