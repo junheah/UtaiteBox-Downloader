@@ -153,8 +153,8 @@ public class MainActivity extends AppCompatActivity
                         DownloadManager.Request request = new DownloadManager.Request(dlurl);
                         request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
                         request.setAllowedOverRoaming(false);
-                        request.setTitle("우타이테 박스 다운로더");
-                        request.setDescription(dltitle);
+                        request.setTitle(dltitle);
+                        request.setDescription("우타이테 박스 다운로더");
                         request.setVisibleInDownloadsUi(true);
                         request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/UtaiteBoxDownloads/"+dltitle+".mp3");
                         dllist.add(dlManager.enqueue(request));
@@ -179,7 +179,7 @@ public class MainActivity extends AppCompatActivity
                             .setContentText("모든 다운로드가 완료되었습니다")
                             .setPriority(NotificationCompat.PRIORITY_LOW)
                             .setOngoing(false)
-                            .setSmallIcon(R.drawable.ic_launcher_foreground);
+                            .setSmallIcon(R.drawable.ic_launcher_background);
                     notificationManager.notify(13155431, stat.build());
                     Toast.makeText(getApplicationContext(), "다운로드 완료", Toast.LENGTH_SHORT).show();
                 }
