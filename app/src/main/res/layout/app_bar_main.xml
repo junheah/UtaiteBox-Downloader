@@ -20,7 +20,36 @@
 
     </android.support.design.widget.AppBarLayout>
 
-    <include layout="@layout/content_main" />
+    <GridLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+
+        android:useDefaultMargins="false"
+        android:alignmentMode="alignBounds"
+        android:columnOrderPreserved="false"
+
+        android:columnCount="4"
+        >
+        <ViewFlipper
+            android:id="@+id/contentHolder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <include
+                android:id="@+id/searchLayout"
+                layout="@layout/content_main" />
+            <include
+                android:id="@+id/likesLayout"
+                layout="@layout/content_likes" />
+            <include
+                android:id="@+id/playlistLayout"
+                layout="@layout/content_main" />
+
+
+        </ViewFlipper>
+    </GridLayout>
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fab"
@@ -30,5 +59,6 @@
         android:layout_margin="@dimen/fab_margin"
         android:visibility="gone"
         app:srcCompat="@android:drawable/ic_dialog_email" />
+
 
 </android.support.design.widget.CoordinatorLayout>
