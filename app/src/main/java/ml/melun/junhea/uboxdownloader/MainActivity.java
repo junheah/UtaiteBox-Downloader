@@ -667,7 +667,6 @@ public class MainActivity extends AppCompatActivity
                 if(!cover.matches("null")){
                     //cover = "http://utaitebox.com/res/profile/cover/" + cover;
                 }
-                cover = "http://utaitebox.com/res/profile/cover/1210_1471267700248.jpeg";
                 String avatar = sessionData.getString("avatar");
                 if (avatar.matches("null")) {
                     avatar = "http://utaitebox.com/images/profile.png";
