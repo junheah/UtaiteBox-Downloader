@@ -11,12 +11,8 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
@@ -42,12 +38,9 @@ import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.animation.GlideAnimation;
-import com.bumptech.glide.request.target.SimpleTarget;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -674,7 +667,6 @@ public class MainActivity extends AppCompatActivity
                 if(!cover.matches("null")){
                     //cover = "http://utaitebox.com/res/profile/cover/" + cover;
                 }
-                cover = "http://utaitebox.com/res/profile/cover/1210_1471267700248.jpeg";
                 String avatar = sessionData.getString("avatar");
                 if (avatar.matches("null")) {
                     avatar = "http://utaitebox.com/images/profile.png";
