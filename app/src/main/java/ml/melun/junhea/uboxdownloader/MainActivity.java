@@ -661,11 +661,17 @@ public class MainActivity extends AppCompatActivity
             Glide.with(this).load("").into(hcover);
             menuNav.getItem(1).setEnabled(false);
             menuNav.getItem(2).setEnabled(false);
+            searchAdapter=null;
+            likesAdapter=null;
+            playlistAdapter=null;
+            mode=0;
+            contentHolder.setDisplayedChild(0);
+            reloadViews(0);
         }else {
             try {
                 String cover = sessionData.getString("cover");
                 if(!cover.matches("null")){
-                    //cover = "http://utaitebox.com/res/profile/cover/" + cover;
+                    cover = "http://utaitebox.com/res/profile/cover/" + cover;
                 }
                 String avatar = sessionData.getString("avatar");
                 if (avatar.matches("null")) {
