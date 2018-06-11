@@ -4,7 +4,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.bumptech.glide.Glide;
 
 import java.util.ArrayList;
 import java.util.TreeSet;
@@ -18,8 +21,9 @@ public class CustomAdapter extends BaseAdapter {
 
     private ArrayList<Item> mData = new ArrayList<>();
     private LayoutInflater mInflater;
-
+    Context main;
     public CustomAdapter(Context context) {
+        main = context;
         mInflater = (LayoutInflater) context
                 .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
@@ -67,21 +71,25 @@ public class CustomAdapter extends BaseAdapter {
                     convertView = mInflater.inflate(R.layout.list_item, null);
                     holder.textView = (TextView) convertView.findViewById(R.id.txtName);
                     holder.txtValue = (TextView) convertView.findViewById(R.id.txtValue);
+                    holder.txtImage = convertView.findViewById(R.id.txtImage);
                     break;
                 case 1:
                     convertView = mInflater.inflate(R.layout.list_item, null);
                     holder.textView = (TextView) convertView.findViewById(R.id.txtName);
                     holder.txtValue = (TextView) convertView.findViewById(R.id.txtValue);
+                    holder.txtImage = convertView.findViewById(R.id.txtImage);
                     break;
                 case 2:
                     convertView = mInflater.inflate(R.layout.list_item, null);
                     holder.textView = (TextView) convertView.findViewById(R.id.txtName);
                     holder.txtValue = (TextView) convertView.findViewById(R.id.txtValue);
+                    holder.txtImage = convertView.findViewById(R.id.txtImage);
                     break;
                 case 3:
                     convertView = mInflater.inflate(R.layout.list_item, null);
                     holder.textView = (TextView) convertView.findViewById(R.id.txtName);
                     holder.txtValue = (TextView) convertView.findViewById(R.id.txtValue);
+                    holder.txtImage = convertView.findViewById(R.id.txtImage);
                     break;
             }
             convertView.setTag(holder);
@@ -90,13 +98,41 @@ public class CustomAdapter extends BaseAdapter {
         }
 
         if(Type == -1){
+            holder.textView.setVisibility(View.VISIBLE);
             holder.textView.setText(mData.get(position).getName());
-        }else if(Type==0 || Type==1){
+        }else if(Type==0){
+            holder.txtValue.setVisibility(View.GONE);
+            holder.txtImage.setVisibility(View.GONE);
+            holder.textView.setVisibility(View.VISIBLE);
             holder.textView.setText(mData.get(position).getName());
-            holder.txtValue.setText(""+mData.get(position).getId());
-        }else if(Type==2 || Type==3){
+        }else if(Type==1){
+            holder.txtImage.setVisibility(View.VISIBLE);
+            holder.txtValue.setVisibility(View.GONE);
+            holder.textView.setVisibility(View.VISIBLE);
+            holder.textView.setText(mData.get(position).getArtist());
+            String thumb= mData.get(position).getThumb();
+            if(thumb.matches("null")) holder.txtImage.setImageResource(R.drawable.default_artist);
+            else{
+                thumb = "http://utaitebox.com/res/artist/image/" + thumb;
+                Glide.with(main).load(thumb).into(holder.txtImage);
+            }
+
+        }
+        else if(Type==2 || Type==3){
+            holder.txtImage.setVisibility(View.VISIBLE);
+            holder.txtValue.setVisibility(View.VISIBLE);
+            holder.textView.setVisibility(View.VISIBLE);
+            String thumb = mData.get(position).getThumb();
+            if(thumb.matches("null")) holder.txtImage.setImageResource(R.drawable.default_cover);
+            else {
+                thumb = "http://utaitebox.com/res/cover/" + thumb;
+                Glide.with(main)
+                        .load(thumb)
+                        .into(holder.txtImage);
+            }
             holder.textView.setText(mData.get(position).getName());
-            holder.txtValue.setText(mData.get(position).getKey());
+            holder.txtValue.setText(mData.get(position).getArtist());
+
         }
         return convertView;
     }
@@ -104,5 +140,6 @@ public class CustomAdapter extends BaseAdapter {
     public static class ViewHolder {
         public TextView textView;
         public TextView txtValue;
+        public ImageView txtImage;
     }
 }

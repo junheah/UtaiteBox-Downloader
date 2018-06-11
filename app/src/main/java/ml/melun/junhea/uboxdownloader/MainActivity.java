@@ -202,7 +202,7 @@ public class MainActivity extends AppCompatActivity
                         try{
                             Item dlitem = tAdapter.getItem(position);
                             String dlkey = dlitem.getKey();
-                            String dltitle = dlitem.getName();
+                            String dltitle = dlitem.getArtist() + " - " + dlitem.getName();
                             Uri dlurl = Uri.parse("http://utaitebox.com/api/play/stream/"+dlkey);
                             DownloadManager.Request request = new DownloadManager.Request(dlurl);
                             request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
@@ -396,21 +396,21 @@ public class MainActivity extends AppCompatActivity
                 JSONArray songs = data.getJSONArray("music");
 
 
-                searchAdapter.addSectionHeaderItem(new Item(0,"노래",-1,null,null));
+                searchAdapter.addSectionHeaderItem(new Item(0,"노래",-1,null,null,null));
                 for (int i=0; i<songs.length();i++){
                     JSONObject obj = songs.getJSONObject(i);
                     int id = obj.getInt("_source_id");
                     String name = obj.getString("song_original");
-                    searchAdapter.addItem(new Item(id,name,0,"null",null));
+                    searchAdapter.addItem(new Item(id,name,0,"null",null,null));
                 }
-                searchAdapter.addSectionHeaderItem(new Item(0,"아티스트",-1,null,null));
+                searchAdapter.addSectionHeaderItem(new Item(0,"아티스트",-1,null,null, null));
                 JSONArray artists = data.getJSONArray("artist");
                 for (int i=0; i<artists.length();i++){
                     JSONObject obj = artists.getJSONObject(i);
                     int id = obj.getInt("_aid");
                     String name = obj.getString("artist_en");
                     String thumb = obj.getString("artist_cover");
-                    searchAdapter.addItem(new Item(id,name,1,thumb,null));
+                    searchAdapter.addItem(new Item(id,null,1,thumb,null,name));
                 }
 
             }catch (Exception e){
@@ -481,7 +481,7 @@ public class MainActivity extends AppCompatActivity
             pd.setCancelable(false);
             pd.show();
             searchAdapter = new CustomAdapter(MainActivity.this);
-            searchAdapter.addSectionHeaderItem(new Item(0,"검색결과",-1,null,null));
+            searchAdapter.addSectionHeaderItem(new Item(0,"검색결과",-1,null,null, null));
         }
 
         protected String doInBackground(Integer... params) {
@@ -502,7 +502,7 @@ public class MainActivity extends AppCompatActivity
                         String name = obj.getString("song_original");
                         String thumb = obj.getString("cover");
                         String key = obj.getString("key");
-                        searchAdapter.addItem(new Item(id, artist + " - " + name, 2, thumb, key));
+                        searchAdapter.addItem(new Item(id, name, 2, thumb, key, artist));
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -528,7 +528,7 @@ public class MainActivity extends AppCompatActivity
             pd.setCancelable(false);
             pd.show();
             searchAdapter = new CustomAdapter(MainActivity.this);
-            searchAdapter.addSectionHeaderItem(new Item(0,"검색결과",-1,null,null));
+            searchAdapter.addSectionHeaderItem(new Item(0,"검색결과",-1,null,null,null));
         }
 
         protected String doInBackground(Integer... params) {
@@ -549,7 +549,7 @@ public class MainActivity extends AppCompatActivity
                         String name = obj.getString("song_original");
                         String thumb = obj.getString("cover");
                         String key = obj.getString("key");
-                        searchAdapter.addItem(new Item(id, artist + " - " + name, 3, thumb, key));
+                        searchAdapter.addItem(new Item(id, name, 3, thumb, key,artist));
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -657,7 +657,7 @@ public class MainActivity extends AppCompatActivity
         ImageView hcover = header.findViewById(R.id.headerCover);
         if(sessionData==null){
             huser.setText("Guest");
-            Glide.with(this).load("").into(hthumb);
+            hthumb.setImageResource(R.drawable.default_artist);
             Glide.with(this).load("").into(hcover);
             menuNav.getItem(0).setChecked(true);
             menuNav.getItem(1).setEnabled(false);
@@ -698,7 +698,7 @@ public class MainActivity extends AppCompatActivity
             pd.setCancelable(false);
             pd.show();
             likesAdapter = new CustomAdapter(MainActivity.this);
-            likesAdapter.addSectionHeaderItem(new Item(0,"좋아요",-1,null,null));
+            likesAdapter.addSectionHeaderItem(new Item(0,"좋아요",-1,null,null,null));
         }
 
         protected String doInBackground(Integer... params) {
@@ -716,7 +716,7 @@ public class MainActivity extends AppCompatActivity
                     String name = obj.getString("song_original");
                     String thumb = obj.getString("cover");
                     String key = obj.getString("key");
-                    likesAdapter.addItem(new Item(0, artist + " - " + name, 2, thumb, key));
+                    likesAdapter.addItem(new Item(0, name, 2, thumb, key,artist));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -741,7 +741,7 @@ public class MainActivity extends AppCompatActivity
             pd.setCancelable(false);
             pd.show();
             playlistAdapter = new CustomAdapter(MainActivity.this);
-            playlistAdapter.addSectionHeaderItem(new Item(0,"플레이리스트",-1,null,null));
+            playlistAdapter.addSectionHeaderItem(new Item(0,"플레이리스트",-1,null,null,null));
         }
 
         protected String doInBackground(Integer... params) {
@@ -759,7 +759,7 @@ public class MainActivity extends AppCompatActivity
                     String name = obj.getString("song_original");
                     String thumb = obj.getString("cover");
                     String key = obj.getString("key");
-                    playlistAdapter.addItem(new Item(0, artist + " - " + name, 2, thumb, key));
+                    playlistAdapter.addItem(new Item(0, name, 2, thumb, key,artist));
                 }
             } catch (Exception e) {
                 e.printStackTrace();

@@ -9,15 +9,16 @@ import android.support.annotation.Nullable;
  * 3 = song from artist
  */
 public class Item {
-    private String name, thumb, key;
+    private String name, thumb, key, artist;
     private int id, type;
     public Item(@Nullable int identification, String nameofitem, int typeofitem, @Nullable String thumbnaillink,
-                @Nullable String streamkey){
+                @Nullable String streamkey, @Nullable String artistname){
         key = streamkey;
         id = identification;
         name = nameofitem;
         type = typeofitem;
         thumb = thumbnaillink;
+        artist = artistname;
     }
 
     public int getType() {
@@ -38,5 +39,8 @@ public class Item {
 
     public String getKey() {
         return key;
+    }
+    public String getArtist(){
+        return artist;
     }
 }
