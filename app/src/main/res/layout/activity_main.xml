@@ -6,10 +6,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:openDrawer="start">
+    tools:openDrawer="start"
+    android:background="@android:color/background_light">
+
+
+
 
     <include
-        layout="@layout/app_bar_main"
+        layout="@layout/slideup_panel"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
@@ -21,5 +25,6 @@
         android:fitsSystemWindows="true"
         app:headerLayout="@layout/nav_header_main"
         app:menu="@menu/activity_main_drawer" />
+
 
 </android.support.v4.widget.DrawerLayout>

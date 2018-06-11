@@ -1,6 +1,7 @@
 package ml.melun.junhea.uboxdownloader;
 
 import android.Manifest;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.DownloadManager;
 import android.app.ProgressDialog;
@@ -19,11 +20,11 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
@@ -38,6 +39,7 @@ import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 import com.bumptech.glide.Glide;
+import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -54,7 +56,9 @@ import javax.net.ssl.HttpsURLConnection;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+    private SlidingUpPanelLayout panel;
     private static int version;
+    int panelOriginalHeight;
     Menu menuNav;
     DownloadManager dlManager;
     String sessionString;
@@ -79,6 +83,7 @@ public class MainActivity extends AppCompatActivity
     BroadcastReceiver onComplete;
     ViewFlipper contentHolder;
     Toolbar toolbar;
+    Boolean panelVisible = true;
     int mode =0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,9 +115,19 @@ public class MainActivity extends AppCompatActivity
             }
         });
         */
+        panel = findViewById(R.id.sliding_layout);
+        panelOriginalHeight = panel.getPanelHeight();
+        panel.setParallaxOffset(500);
+        panel.setDragView(null);
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+
+
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close){
+            //add drawer listeners here
+
+        };
+
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
@@ -121,6 +136,7 @@ public class MainActivity extends AppCompatActivity
 
         //get menuview
         menuNav = navigationView.getMenu();
+
 
         ///////CODE STARTS HERE
         if (ContextCompat.checkSelfPermission(MainActivity.this,
@@ -173,6 +189,9 @@ public class MainActivity extends AppCompatActivity
 
 
         reloadViews(0);
+
+
+
     }
     public void setListOnClick(){
         resultList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
