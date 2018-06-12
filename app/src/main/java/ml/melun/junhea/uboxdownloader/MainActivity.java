@@ -1,7 +1,6 @@
 package ml.melun.junhea.uboxdownloader;
 
 import android.Manifest;
-import android.app.ActionBar;
 import android.app.Activity;
 import android.app.DownloadManager;
 import android.app.ProgressDialog;
@@ -12,15 +11,22 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
+
 import android.net.Uri;
+import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+
 import android.os.Environment;
+import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -29,11 +35,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
@@ -45,6 +55,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -54,10 +65,15 @@ import java.util.ArrayList;
 
 import javax.net.ssl.HttpsURLConnection;
 
+
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     private SlidingUpPanelLayout panel;
     private static int version;
+    static String ACTION_PLAY = "ml.melun.junhea.uboxdownloader.action.PLAY";
+    static String ACTION_PAUSE = "ml.melun.junhea.uboxdownloader.action.PAUSE";
+    static String ACTION_STOP = "ml.melun.junhea.uboxdownloader.action.STOP";
+
     int panelOriginalHeight;
     Menu menuNav;
     DownloadManager dlManager;
@@ -84,7 +100,19 @@ public class MainActivity extends AppCompatActivity
     ViewFlipper contentHolder;
     Toolbar toolbar;
     Boolean panelVisible = true;
+    LinearLayout miniPlayer, miniPlayerInfoContainer;
     int mode =0;
+    int playerOriginalHeight;
+    ImageView miniPlayerCover;
+    ImageButton miniPlayerPlaybtn, playerPlaybtn;
+    SeekBar playerSeekBar;
+    ConstraintLayout playerControl;
+    TextView playerSongName, playerArtistName, miniPlayerSongName, miniPlayerArtistName;
+    Intent player;
+    BroadcastReceiver playBackReceiver;
+    JSONObject playerCurrentSong = null;
+    JSONObject nullSongData;
+    Boolean seekbarPressed = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -105,6 +133,30 @@ public class MainActivity extends AppCompatActivity
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         contentHolder = findViewById(R.id.contentHolder);
         setSupportActionBar(toolbar);
+        miniPlayer = findViewById(R.id.tinyPlayer);
+        miniPlayerInfoContainer = findViewById(R.id.infoContainer);
+        miniPlayerCover = findViewById(R.id.miniPlayerCover);
+        miniPlayerPlaybtn = findViewById(R.id.miniPlayerPlaybtn);
+        miniPlayerSongName = findViewById(R.id.miniPlayerSongName);
+        miniPlayerArtistName = findViewById(R.id.miniPlayerArtistName);
+
+        playerControl = findViewById(R.id.playerControl);
+
+        playerPlaybtn = findViewById(R.id.PlayerPlaybtn);
+        playerSeekBar = findViewById(R.id.playerSeekBar);
+        playerArtistName = findViewById(R.id.playerArtistName);
+        playerSongName = findViewById(R.id.playerSongName);
+        try {
+            nullSongData = new JSONObject()
+                    .put("id", 0)
+                    .put("name", "")
+                    .put("artist", "")
+                    .put("thumb", null)
+                    .put("key", "");
+        }catch(Exception e){
+            //
+        }
+
         /*
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -118,7 +170,9 @@ public class MainActivity extends AppCompatActivity
         panel = findViewById(R.id.sliding_layout);
         panelOriginalHeight = panel.getPanelHeight();
         panel.setParallaxOffset(500);
-        panel.setDragView(null);
+        panel.setDragView(miniPlayer);
+
+        System.out.println(playerOriginalHeight);
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
 
 
@@ -131,7 +185,7 @@ public class MainActivity extends AppCompatActivity
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
         //get menuview
@@ -190,9 +244,130 @@ public class MainActivity extends AppCompatActivity
 
         reloadViews(0);
 
+        addpanelListener();
+
+        //player service intent
+        player = new Intent(this,PlayerService.class);
+
+
+        miniPlayerPlaybtn.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                player.setAction(ACTION_PAUSE);
+                startService(player);
+            }
+        });
+        playerPlaybtn.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                player.setAction(ACTION_PAUSE);
+                startService(player);
+            }
+        });
+        miniPlayerPlaybtn.setEnabled(false);
+        playerPlaybtn.setEnabled(false);
+        //broadcast reciever
+        playBackReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                if(action.matches(PlayerService.BROADCAST_ACTION)) {
+                    String target = intent.getStringExtra("target");
+                    boolean playing = intent.getBooleanExtra("playing", false);
+
+                    if (playing) {
+                        miniPlayerPlaybtn.setImageResource(android.R.drawable.ic_media_play);
+                        playerPlaybtn.setImageResource(android.R.drawable.ic_media_play);
+                    } else {
+                        miniPlayerPlaybtn.setImageResource(android.R.drawable.ic_media_pause);
+                        playerPlaybtn.setImageResource(android.R.drawable.ic_media_pause);
+                    }
+
+
+                    try {
+                        JSONObject nowPlaying = new JSONObject(target);
+                        playerCurrentSong = nowPlaying;
+                        updatePlayer(nowPlaying);
+                    } catch (Exception e) {
+                        //
+                    }
+
+                }else if(action.matches(PlayerService.BROADCAST_TIME)){
+                    if(!seekbarPressed) {
+                        playerSeekBar.setMax(Integer.parseInt(intent.getStringExtra("length")));
+                        playerSeekBar.setProgress(Integer.parseInt(intent.getStringExtra("current")));
+                    }
+                }else if(action.matches(PlayerService.BROADCAST_STOP)){
+//                    updatePlayer(nullSongData);
+//                    miniPlayerPlaybtn.setEnabled(false);
+//                    playerPlaybtn.setEnabled(false);
+//                    playerCurrentSong = null;
+
+                }
+            }
+        };
+        IntentFilter infil = new IntentFilter();
+                infil.addAction(PlayerService.BROADCAST_ACTION);
+                infil.addAction(PlayerService.BROADCAST_TIME);
+        registerReceiver(playBackReceiver,infil);
+
+
+        //seekbar listener
+        playerSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                seekbarPressed=true;
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                seekbarPressed=false;
+                int tarT = seekBar.getProgress();
+                player.setAction(PlayerService.ACTION_SET);
+                player.putExtra("time",tarT+"");
+                startService(player);
+            }
+        });
+
+        playerSeekBar.setEnabled(false);
+
+        //playerSeekBar.setOnSeekBarChangeListener();
 
 
     }
+
+    public void updatePlayer(JSONObject song){
+        try {
+            String thumb = song.getString("thumb");
+            String name = song.getString("name");
+            String artist = song.getString("artist");
+            playerSongName.setText(name);
+            miniPlayerSongName.setText(name);
+            playerArtistName.setText(artist);
+            miniPlayerArtistName.setText(artist);
+
+            if (thumb.matches("null")) miniPlayerCover.setImageResource(R.drawable.default_cover);
+            else {
+                thumb = "http://utaitebox.com/res/cover/" + thumb;
+                Glide.with(this)
+                        .load(thumb)
+                        .into(miniPlayerCover);
+            }
+        }catch(Exception e){
+            //
+        }
+    }
+    public void playerInit(){
+        miniPlayerPlaybtn.setEnabled(true);
+        playerPlaybtn.setEnabled(true);
+        playerSeekBar.setEnabled(true);
+    }
+
+
     public void setListOnClick(){
         resultList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -206,6 +381,7 @@ public class MainActivity extends AppCompatActivity
                 }
                 Item item = tAdapter.getItem(position);
                 System.out.println(item.getName()+","+item.getType());
+
                 switch(item.getType()){
                     case 0:
                         int sid = item.getId();
@@ -214,6 +390,39 @@ public class MainActivity extends AppCompatActivity
                     case 1:
                         int aid = item.getId();
                         new selectArtist().execute(aid);
+                        break;
+                    case 2:
+                    case 3:
+                        Item tarItem = tAdapter.getItem(position);
+                        player.putExtra("target", tarItem.getJSON());
+                        player.setAction(ACTION_PLAY);
+                        startService(player);
+                        if(playerCurrentSong==null){
+                            playerInit();
+                        }
+                        break;
+                }
+            }
+        });
+        //longclick
+        resultList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> arg0, View arg1,
+                                           int position, long id) {
+                // TODO Auto-generated method stub
+                CustomAdapter tAdapter = null;
+                switch(mode){
+                    case 0: tAdapter = searchAdapter; break;
+                    case 1: tAdapter = likesAdapter; break;
+                    case 2: tAdapter = playlistAdapter; break;
+                }
+                Item item = tAdapter.getItem(position);
+                System.out.println(item.getName()+","+item.getType());
+
+                switch(item.getType()){
+                    case 0:
+                        break;
+                    case 1:
                         break;
                     case 2:
                     case 3:
@@ -237,6 +446,7 @@ public class MainActivity extends AppCompatActivity
                         }
 
                 }
+                return true;
             }
         });
     }
@@ -245,6 +455,7 @@ public class MainActivity extends AppCompatActivity
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(onComplete);
+        unregisterReceiver(playBackReceiver);
     }
 
     @Override
@@ -278,6 +489,59 @@ public class MainActivity extends AppCompatActivity
         }
 
         return super.onOptionsItemSelected(item);
+    }
+    //additional variables for panel
+    int miniPlayerCoverOriginalWidth;
+    int miniPlayerCoverMaxWidth;
+    int screenWidth;
+    Boolean listnerFirst=true;
+    //
+    public void addpanelListener(){
+        panel.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
+            @Override
+            public void onPanelSlide(View panel, float slideOffset) {
+                if(listnerFirst){
+                    //declare original sizes
+                    //todo: make this not "hard-coded"
+                    playerOriginalHeight = Math.round(68 * getResources().getDisplayMetrics().density);
+                    miniPlayerCoverOriginalWidth = Math.round(50 * getResources().getDisplayMetrics().density);
+                    miniPlayerCoverMaxWidth = Resources.getSystem().getDisplayMetrics().widthPixels - Math.round(20 * getResources().getDisplayMetrics().density);
+                    screenWidth = Resources.getSystem().getDisplayMetrics().widthPixels;
+                    //
+                    listnerFirst=false;
+                }
+
+                ViewGroup.LayoutParams params = miniPlayer.getLayoutParams();
+                int height = playerOriginalHeight+Math.round((screenWidth-playerOriginalHeight)*slideOffset);
+                miniPlayer.getLayoutParams().height = height;
+                miniPlayer.setLayoutParams(params);
+
+                //info container
+                miniPlayerInfoContainer.setAlpha(1-slideOffset*5);
+
+                //play button
+                miniPlayerPlaybtn.setAlpha(1-slideOffset*5);
+
+
+                //cover image
+                int width = miniPlayerCoverOriginalWidth +
+                        Math.round((miniPlayerCoverMaxWidth - miniPlayerCoverOriginalWidth)*slideOffset);
+                ViewGroup.LayoutParams paramss = miniPlayerCover.getLayoutParams();
+                paramss.height = width;
+                paramss.width = width;
+                miniPlayerCover.setLayoutParams(paramss);
+                //player controls
+                playerControl.setAlpha(slideOffset);
+
+
+            }
+
+            @Override
+            public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
+
+
+            }
+        });
     }
 
     public void reloadViews(int p){
@@ -448,6 +712,11 @@ public class MainActivity extends AppCompatActivity
             resultList.setAdapter(searchAdapter);
         }
     }
+
+
+
+
+
     private class updateCheck extends AsyncTask<Void, Integer, Integer> {
         protected void onPreExecute() {
             super.onPreExecute();

@@ -1,6 +1,9 @@
 package ml.melun.junhea.uboxdownloader;
 
 import android.support.annotation.Nullable;
+
+import org.json.JSONObject;
+
 /*type
  * -1 = header
  * 0 = song search result
@@ -40,7 +43,23 @@ public class Item {
     public String getKey() {
         return key;
     }
+
     public String getArtist(){
         return artist;
+    }
+
+    public String getJSON(){
+        String data = "";
+        try {
+            data = new JSONObject()
+                    .put("id", id)
+                    .put("name", name)
+                    .put("artist",artist)
+                    .put("thumb",thumb)
+                    .put("key",key).toString();
+        }catch(Exception e){
+
+        }
+        return data;
     }
 }

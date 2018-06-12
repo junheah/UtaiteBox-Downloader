@@ -16,73 +16,13 @@
         android:layout_height="match_parent"
         android:visibility="visible" />
 
-
-    <android.support.constraint.ConstraintLayout
+    <include
+        layout="@layout/panel_items"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-        <android.support.constraint.ConstraintLayout
-            android:id="@+id/tinyPlayer"
-            android:layout_width="match_parent"
-            android:layout_height="68dp"
-            android:clickable="true">
+        android:layout_height="match_parent"
+        android:visibility="visible" />
 
-            <ImageView
-                android:id="@+id/miniPlayerCover"
-                android:layout_width="50dp"
-                android:layout_height="0dp"
-                android:layout_margin = "5dp"
-                sothree:layout_constraintBottom_toBottomOf="parent"
-                sothree:layout_constraintStart_toStartOf="parent"
-                sothree:layout_constraintTop_toTopOf="parent"
-                sothree:srcCompat="@drawable/default_cover"/>
 
-            <TextView
-                android:id="@+id/textView"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="8dp"
-                android:text="Song Title"
-                sothree:layout_constraintEnd_toStartOf="@+id/miniPlayerPlaybtn"
-                sothree:layout_constraintStart_toEndOf="@+id/miniPlayerCover"
-                sothree:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/textView2"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="8dp"
-                android:text="ArtistName"
-                sothree:layout_constraintEnd_toStartOf="@+id/miniPlayerPlaybtn"
-                sothree:layout_constraintStart_toEndOf="@+id/miniPlayerCover"
-                sothree:layout_constraintTop_toBottomOf="@+id/textView" />
-
-            <ImageButton
-                android:id="@+id/miniPlayerPlaybtn"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:padding="15dp"
-                sothree:layout_constraintBottom_toBottomOf="parent"
-                sothree:layout_constraintEnd_toEndOf="parent"
-                sothree:layout_constraintTop_toTopOf="parent"
-                sothree:srcCompat="@android:drawable/ic_media_play"
-                android:background="?android:selectableItemBackground"/>
-
-        </android.support.constraint.ConstraintLayout>
-
-        <ListView
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:entries="@array/list_test_item"
-            sothree:layout_constraintBottom_toBottomOf="parent"
-            sothree:layout_constraintEnd_toEndOf="parent"
-            sothree:layout_constraintStart_toStartOf="parent"
-            sothree:layout_constraintTop_toBottomOf="@+id/tinyPlayer" />
-
-    </android.support.constraint.ConstraintLayout>
 
 
 </com.sothree.slidinguppanel.SlidingUpPanelLayout>
