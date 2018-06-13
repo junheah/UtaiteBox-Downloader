@@ -634,7 +634,12 @@ public class MainActivity extends AppCompatActivity
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
+        //if panel open : collapse
+        if(panel.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED)
+            panel.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+
         // Handle navigation view item clicks here.
+
         int id = item.getItemId();
         if (id == R.id.search) {
             //search mode
@@ -670,6 +675,7 @@ public class MainActivity extends AppCompatActivity
                 refreshUserData();
                 item.setTitle("로그인");
             }
+
 
         } else if (id == R.id.checkUpdate) {
             new updateCheck().execute();
@@ -1107,8 +1113,4 @@ public class MainActivity extends AppCompatActivity
             resultList.setAdapter(playlistAdapter);
         }
     }
-
-
-
-
 }
