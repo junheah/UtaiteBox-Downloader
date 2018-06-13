@@ -1,4 +1,12 @@
 {"version":999,"link":"https://github.com/junheah/UtaiteBox-Downloader/releases/"}
 
+#Open Source REST-API Client for android
 
-모든 릴리즈 한번에 보기 : https://github.com/junheah/UtaiteBox-Downloader/tree/master/app/release
+##Releases :
+https://github.com/junheah/UtaiteBox-Downloader/tree/master/app/release
+
+##Screenshots :
+![search](screenshots/screenshot_search.png)
+![player](screenshots/screenshot_player.png)
+![drawer](screenshots/screenshot_drawer.png)
+
