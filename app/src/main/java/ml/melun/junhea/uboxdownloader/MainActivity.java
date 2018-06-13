@@ -43,6 +43,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -61,6 +62,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -107,12 +109,14 @@ public class MainActivity extends AppCompatActivity
     ImageButton miniPlayerPlaybtn, playerPlaybtn;
     SeekBar playerSeekBar;
     ConstraintLayout playerControl;
-    TextView playerSongName, playerArtistName, miniPlayerSongName, miniPlayerArtistName;
+    TextView playerSongName, playerArtistName, miniPlayerSongName, miniPlayerArtistName, playerTime;
     Intent player;
     BroadcastReceiver playBackReceiver;
     JSONObject playerCurrentSong = null;
     JSONObject nullSongData;
     Boolean seekbarPressed = false;
+    ProgressBar miniPlayerProgress;
+    int songLength = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -146,6 +150,8 @@ public class MainActivity extends AppCompatActivity
         playerSeekBar = findViewById(R.id.playerSeekBar);
         playerArtistName = findViewById(R.id.playerArtistName);
         playerSongName = findViewById(R.id.playerSongName);
+        playerTime = findViewById(R.id.playerTime);
+        miniPlayerProgress = findViewById(R.id.miniPlayerProgress);
         try {
             nullSongData = new JSONObject()
                     .put("id", 0)
@@ -281,19 +287,23 @@ public class MainActivity extends AppCompatActivity
                         playerPlaybtn.setImageResource(android.R.drawable.ic_media_pause);
                     }
 
-
                     try {
                         JSONObject nowPlaying = new JSONObject(target);
                         playerCurrentSong = nowPlaying;
-                        updatePlayer(nowPlaying);
+                        updatePlayer(playerCurrentSong);
                     } catch (Exception e) {
                         //
                     }
 
                 }else if(action.matches(PlayerService.BROADCAST_TIME)){
                     if(!seekbarPressed) {
-                        playerSeekBar.setMax(Integer.parseInt(intent.getStringExtra("length")));
-                        playerSeekBar.setProgress(Integer.parseInt(intent.getStringExtra("current")));
+                        songLength = Integer.parseInt(intent.getStringExtra("length"));
+                        int current = Integer.parseInt(intent.getStringExtra("current"));
+                        playerSeekBar.setMax(songLength);
+                        playerSeekBar.setProgress(current);
+                        miniPlayerProgress.setMax(songLength);
+                        miniPlayerProgress.setProgress(current);
+                        playerTime.setText(getTimeStamp(current) + " | " + getTimeStamp(songLength));
                     }
                 }else if(action.matches(PlayerService.BROADCAST_STOP)){
 //                    updatePlayer(nullSongData);
@@ -309,13 +319,19 @@ public class MainActivity extends AppCompatActivity
                 infil.addAction(PlayerService.BROADCAST_TIME);
         registerReceiver(playBackReceiver,infil);
 
+        //start player intent to see if service is already running
+        player.setAction(PlayerService.ACTION_GETINFO);
+        startService(player);
+
 
         //seekbar listener
         playerSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
 
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-
+                if(b){
+                    playerTime.setText(getTimeStamp(i)+" | " + getTimeStamp(songLength));
+                }
             }
 
             @Override
@@ -340,11 +356,20 @@ public class MainActivity extends AppCompatActivity
 
     }
 
+    public String getTimeStamp(int m){
+        long second = (m / 1000) % 60;
+        long minute = (m / (1000 * 60)) % 60;
+        long hour = (m / (1000 * 60 * 60)) % 24;
+        return(String.format("%02d:%02d:%02d", hour, minute, second));
+    }
+
     public void updatePlayer(JSONObject song){
         try {
+
             String thumb = song.getString("thumb");
             String name = song.getString("name");
             String artist = song.getString("artist");
+
             playerSongName.setText(name);
             miniPlayerSongName.setText(name);
             playerArtistName.setText(artist);
@@ -357,6 +382,12 @@ public class MainActivity extends AppCompatActivity
                         .load(thumb)
                         .into(miniPlayerCover);
             }
+            if(name.length()>0){
+                playerInit();
+            }else{
+                playerDeinit();
+            }
+
         }catch(Exception e){
             //
         }
@@ -365,6 +396,11 @@ public class MainActivity extends AppCompatActivity
         miniPlayerPlaybtn.setEnabled(true);
         playerPlaybtn.setEnabled(true);
         playerSeekBar.setEnabled(true);
+    }
+    public void playerDeinit(){
+        miniPlayerPlaybtn.setEnabled(false);
+        playerPlaybtn.setEnabled(false);
+        playerSeekBar.setEnabled(false);
     }
 
 
@@ -395,11 +431,9 @@ public class MainActivity extends AppCompatActivity
                     case 3:
                         Item tarItem = tAdapter.getItem(position);
                         player.putExtra("target", tarItem.getJSON());
+                        playerDeinit();
                         player.setAction(ACTION_PLAY);
                         startService(player);
-                        if(playerCurrentSong==null){
-                            playerInit();
-                        }
                         break;
                 }
             }
@@ -451,11 +485,16 @@ public class MainActivity extends AppCompatActivity
         });
     }
 
+
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(onComplete);
         unregisterReceiver(playBackReceiver);
+        player.setAction(PlayerService.ACTION_STOP);
+        startService(player);
+        stopService(player);
     }
 
     @Override
@@ -464,7 +503,11 @@ public class MainActivity extends AppCompatActivity
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
-            super.onBackPressed();
+            if(panel.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED) {
+                panel.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+            }else{
+                super.onBackPressed();
+            }
         }
     }
 
@@ -1064,4 +1107,8 @@ public class MainActivity extends AppCompatActivity
             resultList.setAdapter(playlistAdapter);
         }
     }
+
+
+
+
 }

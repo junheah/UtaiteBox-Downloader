@@ -24,13 +24,14 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
     public static final String ACTION_PAUSE = "ml.melun.junhea.uboxdownloader.action.PAUSE";
     public static final String ACTION_STOP = "ml.melun.junhea.uboxdownloader.action.STOP";
     public static final String ACTION_SET = "ml.melun.junhea.uboxdownloader.action.SET";
+    public static final String ACTION_GETINFO = "ml.melun.junhea.uboxdownloader.action.GET";
     public static final String BROADCAST_ACTION = "ml.melun.junhea.uboxdownloader.action.BROADCAST";
     public static final String BROADCAST_TIME = "ml.melun.junhea.uboxdownloader.action.TIME";
     public static final String BROADCAST_STOP = "ml.melun.junhea.uboxdownloader.action.STOP";
     MediaPlayer mediaPlayer=null;
     IBinder mBinder = new LocalBinder();
     Intent intent, timerIntent;
-    JSONObject songData;
+    JSONObject songData = null;
     WifiManager.WifiLock wifiLock;
     private boolean started = false;
     private Handler handler = new Handler();
@@ -50,6 +51,16 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
     @Override
     public void onCreate() {
         System.out.println("oncreate!");
+        try{
+            songData = new JSONObject()
+                    .put("id", 0)
+                    .put("name", "")
+                    .put("artist", "")
+                    .put("thumb", null)
+                    .put("key", "");
+        }catch(Exception e){
+            e.printStackTrace();
+        }
         mediaPlayer = new MediaPlayer();
         intent = new Intent();
         timerIntent = new Intent();
@@ -74,6 +85,7 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
                 //if last track :
                 System.out.println("complete!");
                 stopT();
+                broadcast();
                 // finish current activity
             }
         });
@@ -103,7 +115,7 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
                     e.printStackTrace();
                 }
                 mediaPlayer.setOnPreparedListener(this);
-                broadcast();
+                //broadcast();
                 break;
 
             case ACTION_PAUSE:
@@ -125,6 +137,10 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
             case ACTION_SET:
                 int tarT = Integer.parseInt(intent.getStringExtra("time"));
                 mediaPlayer.seekTo(tarT);
+                break;
+
+            case ACTION_GETINFO:
+                broadcast();
                 break;
         }
 
