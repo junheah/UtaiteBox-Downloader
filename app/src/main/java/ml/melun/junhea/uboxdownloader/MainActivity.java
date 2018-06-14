@@ -3,6 +3,8 @@ package ml.melun.junhea.uboxdownloader;
 import android.Manifest;
 import android.app.Activity;
 import android.app.DownloadManager;
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -157,7 +159,7 @@ public class MainActivity extends AppCompatActivity
                     .put("id", 0)
                     .put("name", "")
                     .put("artist", "")
-                    .put("thumb", null)
+                    .put("thumb", "null")
                     .put("key", "");
         }catch(Exception e){
             //
@@ -260,6 +262,8 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v) {
                 player.setAction(ACTION_PAUSE);
                 startService(player);
+
+
             }
         });
         playerPlaybtn.setOnClickListener(new View.OnClickListener() {
@@ -306,17 +310,15 @@ public class MainActivity extends AppCompatActivity
                         playerTime.setText(getTimeStamp(current) + " | " + getTimeStamp(songLength));
                     }
                 }else if(action.matches(PlayerService.BROADCAST_STOP)){
-//                    updatePlayer(nullSongData);
-//                    miniPlayerPlaybtn.setEnabled(false);
-//                    playerPlaybtn.setEnabled(false);
-//                    playerCurrentSong = null;
-
+                    updatePlayer(nullSongData);
+                    playerDeinit();
                 }
             }
         };
         IntentFilter infil = new IntentFilter();
-                infil.addAction(PlayerService.BROADCAST_ACTION);
-                infil.addAction(PlayerService.BROADCAST_TIME);
+        infil.addAction(PlayerService.BROADCAST_ACTION);
+        infil.addAction(PlayerService.BROADCAST_TIME);
+        infil.addAction(PlayerService.BROADCAST_STOP);
         registerReceiver(playBackReceiver,infil);
 
         //start player intent to see if service is already running
@@ -365,11 +367,10 @@ public class MainActivity extends AppCompatActivity
 
     public void updatePlayer(JSONObject song){
         try {
-
+            System.out.println(song.toString());
             String thumb = song.getString("thumb");
             String name = song.getString("name");
             String artist = song.getString("artist");
-
             playerSongName.setText(name);
             miniPlayerSongName.setText(name);
             playerArtistName.setText(artist);
@@ -401,6 +402,10 @@ public class MainActivity extends AppCompatActivity
         miniPlayerPlaybtn.setEnabled(false);
         playerPlaybtn.setEnabled(false);
         playerSeekBar.setEnabled(false);
+        playerSeekBar.setProgress(0);
+        playerTime.setText("");
+        playerPlaybtn.setImageResource(android.R.drawable.ic_media_pause);
+        miniPlayerPlaybtn.setImageResource(android.R.drawable.ic_media_pause);
     }
 
 
@@ -492,9 +497,6 @@ public class MainActivity extends AppCompatActivity
         super.onDestroy();
         unregisterReceiver(onComplete);
         unregisterReceiver(playBackReceiver);
-        player.setAction(PlayerService.ACTION_STOP);
-        startService(player);
-        stopService(player);
     }
 
     @Override
