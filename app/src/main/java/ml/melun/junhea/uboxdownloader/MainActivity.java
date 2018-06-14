@@ -19,6 +19,7 @@ import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 
 import android.os.Environment;
@@ -261,7 +262,7 @@ public class MainActivity extends AppCompatActivity
         miniPlayerPlaybtn.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 player.setAction(ACTION_PAUSE);
-                startService(player);
+                startplayer(player);
 
 
             }
@@ -269,7 +270,7 @@ public class MainActivity extends AppCompatActivity
         playerPlaybtn.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 player.setAction(ACTION_PAUSE);
-                startService(player);
+                startplayer(player);
             }
         });
         miniPlayerPlaybtn.setEnabled(false);
@@ -323,7 +324,7 @@ public class MainActivity extends AppCompatActivity
 
         //start player intent to see if service is already running
         player.setAction(PlayerService.ACTION_GETINFO);
-        startService(player);
+        startplayer(player);
 
 
         //seekbar listener
@@ -347,7 +348,7 @@ public class MainActivity extends AppCompatActivity
                 int tarT = seekBar.getProgress();
                 player.setAction(PlayerService.ACTION_SET);
                 player.putExtra("time",tarT+"");
-                startService(player);
+                startplayer(player);
             }
         });
 
@@ -403,6 +404,7 @@ public class MainActivity extends AppCompatActivity
         playerPlaybtn.setEnabled(false);
         playerSeekBar.setEnabled(false);
         playerSeekBar.setProgress(0);
+        miniPlayerProgress.setProgress(0);
         playerTime.setText("");
         playerPlaybtn.setImageResource(android.R.drawable.ic_media_pause);
         miniPlayerPlaybtn.setImageResource(android.R.drawable.ic_media_pause);
@@ -438,7 +440,7 @@ public class MainActivity extends AppCompatActivity
                         player.putExtra("target", tarItem.getJSON());
                         playerDeinit();
                         player.setAction(ACTION_PLAY);
-                        startService(player);
+                        startplayer(player);
                         break;
                 }
             }
@@ -488,6 +490,14 @@ public class MainActivity extends AppCompatActivity
                 return true;
             }
         });
+    }
+
+    public void startplayer(Intent service){
+        if (Build.VERSION.SDK_INT >= 26) {
+            startForegroundService(service);
+        }else{
+            startService(service);
+        }
     }
 
 

@@ -24,7 +24,7 @@
         <ImageButton
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:src="@android:drawable/ic_media_play"
+            android:src="@android:drawable/ic_media_pause"
             android:background="?android:selectableItemBackground"
             android:layout_centerHorizontal="true"
             android:layout_centerVertical="true"

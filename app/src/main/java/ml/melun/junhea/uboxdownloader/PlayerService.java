@@ -1,23 +1,30 @@
 package ml.melun.junhea.uboxdownloader;
 
+import android.annotation.TargetApi;
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.SyncStateContract;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.content.ContextCompat;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.MediaController;
@@ -53,6 +60,7 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
     RemoteViews playerView;
     NotificationCompat.Builder notification;
 
+
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;
@@ -81,6 +89,7 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
         intent = new Intent();
         timerIntent = new Intent();
         stopintent = new Intent();
+
         mediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
         wifiLock = ((WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE))
                 .createWifiLock(WifiManager.WIFI_MODE_FULL, "uboxdl");
@@ -110,7 +119,8 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
         });
         //foreground bullshit
         playerView = new RemoteViews(getPackageName(), R.layout.notification_layout);
-
+        //android O bullshit
+        showNotification();
     }
 
     public void onPrepared(MediaPlayer player) {
@@ -214,6 +224,7 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
         handler.postDelayed(runnable, 1000);
     }
     private void showNotification() {
+
         Intent notificationIntent = new Intent(this, MainActivity.class);
         notificationIntent.setAction(ACTION_PLAY);
         notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
@@ -244,23 +255,31 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
         Bitmap icon = BitmapFactory.decodeResource(getResources(),
                 R.drawable.default_artist);
 
-        notification = new NotificationCompat.Builder(this,"UtaiteBox Player")
+        //android O
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationChannel mchannel = new NotificationChannel("UtaiteBox Player","UtaiteBox Player",NotificationManager.IMPORTANCE_DEFAULT);
+        }
+        notification = new NotificationCompat.Builder(this, "UtaiteBox Player")
                 .setContent(playerView)
                 .setContentIntent(pendingIntent)
                 .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
                 .setSmallIcon(R.drawable.ic_launcher_background)
-                .setOngoing(false);
+                .setOngoing(true);
         playerView.setOnClickPendingIntent(R.id.notificationPlaybtn, pplayIntent);
         playerView.setOnClickPendingIntent(R.id.notificationNext,pnextIntent);
         playerView.setOnClickPendingIntent(R.id.notificationPrev,ppreviousIntent);
         playerView.setOnClickPendingIntent(R.id.notificationStop,pstopIntent);
+        startForeground(123123123, notification.build());
 //                .addAction(android.R.drawable.ic_media_previous, "Previous",
 //                        ppreviousIntent)
 //                .addAction(android.R.drawable.ic_media_play, "Play",
 //                        pplayIntent);
 //                .addAction(android.R.drawable.ic_media_next, "Next",
 //                        pnextIntent).build();
-        startForeground(123123123, notification.build());
+
+
+
+
     }
 
     public void updateNotification(){
@@ -290,6 +309,7 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
             //
         }
     }
+
 
 
 }
