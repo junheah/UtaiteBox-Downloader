@@ -1,5 +1,10 @@
 package ml.melun.junhea.uboxdownloader;
 
+//todo 서비스-액티비티 간 통신 딜레이 줄이기
+//todo 리스트뷰 없애고 리사이클러로 변경
+//todo UI 개선
+//todo 오프라인 모드 개선 (라이브러리 기능 추가, 오프라인 플레이리스트)
+
 import android.Manifest;
 import android.app.Activity;
 import android.app.DownloadManager;
@@ -71,6 +76,9 @@ import ml.melun.junhea.uboxdownloader.Adapter.CustomAdapter;
 import ml.melun.junhea.uboxdownloader.Adapter.playlistAdapter;
 import ml.melun.junhea.uboxdownloader.ItemTouchHelper.ItemTouchHelperCallback;
 
+import static ml.melun.junhea.uboxdownloader.PlayerService.ACTION_NEXT;
+import static ml.melun.junhea.uboxdownloader.PlayerService.ACTION_PREV;
+
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -97,6 +105,9 @@ public class MainActivity extends AppCompatActivity
     JSONObject data;
     NavigationView navigationView;
     CustomAdapter searchAdapter;
+    CustomAdapter resultAdapter;
+    int searchStage=0;
+    //searched nothing = 0 , searched all = 1 , got to result page = 2
     CustomAdapter likesAdapter;
     ml.melun.junhea.uboxdownloader.Adapter.playlistAdapter playlistAdapter;
     ArrayList<Long> dllist= new ArrayList<>();
@@ -110,7 +121,7 @@ public class MainActivity extends AppCompatActivity
     int mode =0;
     int playerOriginalHeight;
     ImageView miniPlayerCover;
-    ImageButton miniPlayerPlaybtn, playerPlaybtn;
+    ImageButton miniPlayerPlaybtn, playerPlaybtn, playerNextbtn, playerPrevbtn;
     SeekBar playerSeekBar;
     ConstraintLayout playerControl;
     TextView playerSongName, playerArtistName, miniPlayerSongName, miniPlayerArtistName, playerTime;
@@ -124,6 +135,8 @@ public class MainActivity extends AppCompatActivity
     ArrayList<Item> playlistItems;
     int songLength = 0;
     playlistAdapter listAdapter;
+    int playlistPosition=0;
+    JSONArray playlist;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -159,6 +172,8 @@ public class MainActivity extends AppCompatActivity
         playerSongName = findViewById(R.id.playerSongName);
         playerTime = findViewById(R.id.playerTime);
         miniPlayerProgress = findViewById(R.id.miniPlayerProgress);
+        playerPrevbtn = findViewById(R.id.playerPrevbtn);
+        playerNextbtn = findViewById(R.id.playerNextbtn);
 
 
         playListView = findViewById(R.id.playList);
@@ -168,6 +183,25 @@ public class MainActivity extends AppCompatActivity
         listAdapter = new playlistAdapter(playlistItems,MainActivity.this);
         new ItemTouchHelper(new ItemTouchHelperCallback(listAdapter)).attachToRecyclerView(playListView);
         playListView.setAdapter(listAdapter);
+        playListView.addOnItemTouchListener(
+                new RecyclerItemClickListener(this, playListView ,new RecyclerItemClickListener.OnItemClickListener() {
+                    @Override public void onItemClick(View view, int position) {
+                        // add playlist to service
+                        System.out.println(listAdapter.getPlayList());
+                        try {
+                            playlist = new JSONArray(listAdapter.getPlayList());
+                            player.putExtra("playlist", playlist.toString());
+                            player.putExtra("position", position + "");
+                            //playerDeinit();
+                            player.setAction(PlayerService.ACTION_PLAY);
+                            startplayer(player);
+
+                        }catch(Exception e){
+                            //
+                        }
+                    }
+                })
+        );
 
 
         try {
@@ -255,7 +289,7 @@ public class MainActivity extends AppCompatActivity
                             .setContentText("모든 다운로드가 완료되었습니다")
                             .setPriority(NotificationCompat.PRIORITY_LOW)
                             .setOngoing(false)
-                            .setSmallIcon(R.drawable.ic_launcher_background);
+                            .setSmallIcon(R.drawable.ic_notification_icon);
                     notificationManager.notify(13155431, stat.build());
                     Toast.makeText(getApplicationContext(), "다운로드 완료", Toast.LENGTH_SHORT).show();
                 }
@@ -288,6 +322,18 @@ public class MainActivity extends AppCompatActivity
                 startplayer(player);
             }
         });
+        playerPrevbtn.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                player.setAction(ACTION_PREV);
+                startplayer(player);
+            }
+        });
+        playerNextbtn.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                player.setAction(ACTION_NEXT);
+                startplayer(player);
+            }
+        });
         miniPlayerPlaybtn.setEnabled(false);
         playerPlaybtn.setEnabled(false);
         //broadcast reciever
@@ -296,7 +342,7 @@ public class MainActivity extends AppCompatActivity
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
                 if(action.matches(PlayerService.BROADCAST_ACTION)) {
-                    String target = intent.getStringExtra("target");
+                    playlistPosition = Integer.parseInt(intent.getStringExtra("position"));
                     boolean playing = intent.getBooleanExtra("playing", false);
 
                     if (playing) {
@@ -308,7 +354,7 @@ public class MainActivity extends AppCompatActivity
                     }
 
                     try {
-                        JSONObject nowPlaying = new JSONObject(target);
+                        JSONObject nowPlaying = playlist.getJSONObject(playlistPosition);
                         playerCurrentSong = nowPlaying;
                         updatePlayer(playerCurrentSong);
                     } catch (Exception e) {
@@ -402,7 +448,7 @@ public class MainActivity extends AppCompatActivity
             if(name.length()>0){
                 playerInit();
             }else{
-                playerDeinit();
+                //playerDeinit();
             }
 
         }catch(Exception e){
@@ -413,11 +459,15 @@ public class MainActivity extends AppCompatActivity
         miniPlayerPlaybtn.setEnabled(true);
         playerPlaybtn.setEnabled(true);
         playerSeekBar.setEnabled(true);
+        playerNextbtn.setEnabled(true);
+        playerPrevbtn.setEnabled(true);
     }
     public void playerDeinit(){
         miniPlayerPlaybtn.setEnabled(false);
         playerPlaybtn.setEnabled(false);
         playerSeekBar.setEnabled(false);
+        playerNextbtn.setEnabled(false);
+        playerPrevbtn.setEnabled(false);
         playerSeekBar.setProgress(0);
         miniPlayerProgress.setProgress(0);
         playerTime.setText("");
@@ -438,7 +488,14 @@ public class MainActivity extends AppCompatActivity
                    CustomAdapter tAdapter = null;
                    switch (mode) {
                        case 0:
-                           tAdapter = searchAdapter;
+                           switch(searchStage) {
+                               case 1:
+                                   tAdapter = searchAdapter;
+                                   break;
+                               case 2:
+                                   tAdapter = resultAdapter;
+                                   break;
+                           }
                            break;
                        case 1:
                            tAdapter = likesAdapter;
@@ -459,14 +516,19 @@ public class MainActivity extends AppCompatActivity
                            new selectArtist().execute(aid);
                            break;
                        case 2:
-
-                           break;
-                       case 3:
                            Item tarItem = tAdapter.getItem(position);
-                           player.putExtra("target", tarItem.getJSON());
-                           playerDeinit();
-                           player.setAction(ACTION_PLAY);
-                           startplayer(player);
+                           try{
+                               playlist= new JSONArray("["+tarItem.getJSON()+"]");
+                               playlistPosition=0;
+                               player.putExtra("playlist", playlist.toString());
+                               player.putExtra("position",playlistPosition+"");
+                               //playerDeinit();
+                               player.setAction(ACTION_PLAY);
+                               startplayer(player);
+                           }catch(Exception e){
+                               //
+                           }
+
                            break;
                    }
                }
@@ -498,8 +560,7 @@ public class MainActivity extends AppCompatActivity
                        case 1:
                            break;
                        case 2:
-                           break;
-                       case 3:
+                           //todo longclick popup menu
                            Toast.makeText(getApplicationContext(), "다운로드를 시작합니다.", Toast.LENGTH_SHORT).show();
                            try {
                                Item dlitem = tAdapter.getItem(position);
@@ -552,7 +613,10 @@ public class MainActivity extends AppCompatActivity
             if(panel.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED) {
                 panel.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
             }else{
-                super.onBackPressed();
+                if(searchStage>0&&mode==0){
+                    searchStage--;
+                    reloadViews(mode);
+                }else super.onBackPressed();
             }
         }
     }
@@ -638,7 +702,16 @@ public class MainActivity extends AppCompatActivity
             case 0:
                 searchBox = findViewById(R.id.searchBox);
                 resultList = findViewById(R.id.resultList);
-                resultList.setAdapter(searchAdapter);
+                switch(searchStage){
+                    case 0:
+                        searchAdapter = new CustomAdapter(this);
+                        resultList.setAdapter(searchAdapter);
+                        break;
+                    case 1:
+                        resultList.setAdapter(searchAdapter);
+                        break;
+                }
+
                 searchButton = findViewById(R.id.searchButton);
                 searchButton.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -697,7 +770,6 @@ public class MainActivity extends AppCompatActivity
             reloadViews(1);
             mode=1;
         } else if (id == R.id.playList) {
-            //todo: playlist
             contentHolder.setDisplayedChild(2);
             reloadViews(2);
             mode=2;
@@ -748,7 +820,6 @@ public class MainActivity extends AppCompatActivity
                 }catch (Exception e){
                     e.printStackTrace();
                 }
-                //Todo login function = parse user data and populate UI
 
             }
             if (resultCode == Activity.RESULT_CANCELED) {
@@ -765,6 +836,7 @@ public class MainActivity extends AppCompatActivity
             pd.setCancelable(false);
             pd.show();
             searchAdapter = new CustomAdapter(MainActivity.this);
+
         }
 
         protected String doInBackground(String... params) {
@@ -804,6 +876,7 @@ public class MainActivity extends AppCompatActivity
             }
 
             resultList.setAdapter(searchAdapter);
+            searchStage=1;
         }
     }
 
@@ -862,8 +935,9 @@ public class MainActivity extends AppCompatActivity
             pd.setMessage("로드중");
             pd.setCancelable(false);
             pd.show();
-            searchAdapter = new CustomAdapter(MainActivity.this);
-            searchAdapter.addSectionHeaderItem(new Item(0,"검색결과",-1,null,null, null));
+            resultAdapter = new CustomAdapter(MainActivity.this);
+            resultAdapter.addSectionHeaderItem(new Item(0,"검색결과",-1,null,null, null));
+
         }
 
         protected String doInBackground(Integer... params) {
@@ -884,7 +958,7 @@ public class MainActivity extends AppCompatActivity
                         String name = obj.getString("song_original");
                         String thumb = obj.getString("cover");
                         String key = obj.getString("key");
-                        searchAdapter.addItem(new Item(id, name, 2, thumb, key, artist));
+                        resultAdapter.addItem(new Item(id, name, 2, thumb, key, artist));
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -899,7 +973,8 @@ public class MainActivity extends AppCompatActivity
             if (pd.isShowing()){
                 pd.dismiss();
             }
-            resultList.setAdapter(searchAdapter);
+            resultList.setAdapter(resultAdapter);
+            searchStage=2;
         }
     }
     private class selectArtist extends AsyncTask<Integer, String, String> {
@@ -909,8 +984,9 @@ public class MainActivity extends AppCompatActivity
             pd.setMessage("로드중");
             pd.setCancelable(false);
             pd.show();
-            searchAdapter = new CustomAdapter(MainActivity.this);
-            searchAdapter.addSectionHeaderItem(new Item(0,"검색결과",-1,null,null,null));
+            resultAdapter = new CustomAdapter(MainActivity.this);
+            resultAdapter.addSectionHeaderItem(new Item(0,"검색결과",-1,null,null,null));
+
         }
 
         protected String doInBackground(Integer... params) {
@@ -931,7 +1007,7 @@ public class MainActivity extends AppCompatActivity
                         String name = obj.getString("song_original");
                         String thumb = obj.getString("cover");
                         String key = obj.getString("key");
-                        searchAdapter.addItem(new Item(id, name, 3, thumb, key,artist));
+                        resultAdapter.addItem(new Item(id, name, 2, thumb, key,artist));
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -946,7 +1022,8 @@ public class MainActivity extends AppCompatActivity
             if (pd.isShowing()){
                 pd.dismiss();
             }
-            resultList.setAdapter(searchAdapter);
+            resultList.setAdapter(resultAdapter);
+            searchStage=2;
         }
     }
 
@@ -1154,6 +1231,7 @@ public class MainActivity extends AppCompatActivity
                 pd.dismiss();
             }
             listAdapter.swap(playlistItems);
+            //listAdapter.notifyDataSetChanged();
 
         }
     }

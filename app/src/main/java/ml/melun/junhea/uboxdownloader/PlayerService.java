@@ -22,6 +22,7 @@ import android.widget.RemoteViews;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.NotificationTarget;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class PlayerService extends Service implements MediaPlayer.OnPreparedListener {
@@ -31,6 +32,7 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
     public static final String ACTION_PREV = "ml.melun.junhea.uboxdownloader.action.PREV";
     public static final String ACTION_NEXT = "ml.melun.junhea.uboxdownloader.action.NEXT";
     public static final String ACTION_SET = "ml.melun.junhea.uboxdownloader.action.SET";
+    public static final String ACTION_PLAYLIST = "ml.melun.junhea.uboxdownloader.action.PLAYLIST";
     public static final String ACTION_GETINFO = "ml.melun.junhea.uboxdownloader.action.GET";
     public static final String BROADCAST_ACTION = "ml.melun.junhea.uboxdownloader.action.BROADCAST";
     public static final String BROADCAST_TIME = "ml.melun.junhea.uboxdownloader.action.TIME";
@@ -45,6 +47,8 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
     private Runnable runnable;
     RemoteViews playerView;
     NotificationCompat.Builder notification;
+    JSONArray playlist;
+    int position=0;
 
 
     @Override
@@ -60,7 +64,6 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
 
     @Override
     public void onCreate() {
-        System.out.println("oncreate!");
         try{
             songData = new JSONObject()
                     .put("id", 0)
@@ -97,10 +100,19 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             public void onCompletion(MediaPlayer mp) {
                 //if last track :
-                System.out.println("complete!");
-                stopT();
-                broadcast();
+                if(position==playlist.length()-1){
+                    System.out.println("complete!");
+                    stopT();
+                    broadcast();
+                }else{
+                    position++;
+                    stopT();
+                    play();
+                }
+                //todo add loop / shuffle mode
+
                 // finish current activity
+
             }
         });
         //foreground bullshit
@@ -127,17 +139,15 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
                 mediaPlayer.reset();
                 try {
                     mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-                    songData = new JSONObject(intent.getStringExtra("target"));
-                    mediaPlayer.setDataSource("http://utaitebox.com/api/play/stream/"+songData.get("key"));
-                    mediaPlayer.setOnPreparedListener(this);
-                    mediaPlayer.prepareAsync();
-                    showNotification();
+                    playlist = new JSONArray(intent.getStringExtra("playlist"));
+                    position = Integer.parseInt(intent.getStringExtra("position"));
+                    play();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                mediaPlayer.setOnPreparedListener(this);
-                //broadcast();
+                broadcast();
                 break;
+
 
             case ACTION_PAUSE:
                 if (!mediaPlayer.isPlaying()) {
@@ -154,7 +164,25 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
             case ACTION_STOP:
                 stopSelf();
                 break;
-
+            case ACTION_NEXT:
+                System.out.println(position+", "+playlist.length());
+                if(position+1<playlist.length()){
+                    position++;
+                    play();
+                }
+                break;
+            case ACTION_PREV:
+                if(mediaPlayer.getCurrentPosition()>3000){
+                    mediaPlayer.seekTo(0);
+                    stopT();
+                    startT();
+                }else {
+                    if(position>0){
+                        position--;
+                        play();
+                    }
+                }
+                break;
             case ACTION_SET:
                 int tarT = Integer.parseInt(intent.getStringExtra("time"));
                 mediaPlayer.seekTo(tarT);
@@ -170,7 +198,7 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
 
     public void broadcast(){
         intent.setAction(BROADCAST_ACTION);
-        intent.putExtra("target", songData.toString());
+        intent.putExtra("position", position+"");
         intent.putExtra("playing",mediaPlayer.isPlaying());
         sendBroadcast(intent);
     }
@@ -185,6 +213,21 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
     public void broadcastEnd(){
         stopintent.setAction(BROADCAST_STOP);
         sendBroadcast(stopintent);
+    }
+    public void play(){
+        try {
+            stopT();
+            mediaPlayer.reset();
+            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            songData = playlist.getJSONObject(position);
+            mediaPlayer.setDataSource("http://utaitebox.com/api/play/stream/"
+                    + songData.get("key"));
+            mediaPlayer.setOnPreparedListener(this);
+            mediaPlayer.prepareAsync();
+            showNotification();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -249,22 +292,13 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
                 .setContent(playerView)
                 .setContentIntent(pendingIntent)
                 .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
-                .setSmallIcon(R.drawable.ic_launcher_background)
+                .setSmallIcon(R.drawable.ic_notification_icon)
                 .setOngoing(true);
         playerView.setOnClickPendingIntent(R.id.notificationPlaybtn, pplayIntent);
         playerView.setOnClickPendingIntent(R.id.notificationNext,pnextIntent);
         playerView.setOnClickPendingIntent(R.id.notificationPrev,ppreviousIntent);
         playerView.setOnClickPendingIntent(R.id.notificationStop,pstopIntent);
         startForeground(123123123, notification.build());
-//                .addAction(android.R.drawable.ic_media_previous, "Previous",
-//                        ppreviousIntent)
-//                .addAction(android.R.drawable.ic_media_play, "Play",
-//                        pplayIntent);
-//                .addAction(android.R.drawable.ic_media_next, "Next",
-//                        pnextIntent).build();
-
-
-
 
     }
 

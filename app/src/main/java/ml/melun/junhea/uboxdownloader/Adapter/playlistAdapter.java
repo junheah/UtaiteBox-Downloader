@@ -1,5 +1,5 @@
 package ml.melun.junhea.uboxdownloader.Adapter;
-
+//todo 플레이리스트 변경시 서비스 플레이리스트도 변경
 import android.content.Context;
 import android.graphics.Color;
 import android.support.v7.widget.CardView;
@@ -9,8 +9,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,17 +33,28 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
         mData = list;
         main = context;
     }
+    public String getPlayList(){
+        JSONArray playlist = new JSONArray();
+        for(Item i : mData){
+            try{
+                playlist.put(new JSONObject(i.getJSON()));
+            }catch(Exception e){
+                //
+            }
+        }
+        return(playlist.toString());
+    }
 
     @Override
     public ItemViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         //set layout of item
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.playlist_item, parent, false);
-        ItemViewHolder itemViewHolder = new ItemViewHolder(view);
-        return itemViewHolder;
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.playlist_item, parent, false);
+        return new ItemViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(ItemViewHolder holder, int position) {
+    public void onBindViewHolder(final ItemViewHolder holder, int position) {
         //set contents of views
         Item song = mData.get(position);
         holder.songName.setText(song.getName());
@@ -48,25 +63,23 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
         String thumb= song.getThumb();
 
         //todo: glide inside recycler view doesnt work
-//        if(thumb.matches("null")) holder.thumbView.setImageResource(R.drawable.default_cover);
-//        else{
-//            thumb = "http://utaitebox.com/res/artist/image/" + thumb;
-//            //System.out.println(thumb);
-//            Glide.with(main.getApplicationContext())
-//                    .load(thumb)
-//                    .placeholder(R.drawable.default_cover)
-//                    .into(holder.thumbView);
-//        }
+        if(thumb.matches("null")) holder.thumbView.setImageResource(R.drawable.default_cover);
+        else{
+            thumb = "http://utaitebox.com/res/cover/" + thumb;
+            Glide.with(main)
+                    .load(thumb)
+                    .placeholder(R.drawable.default_cover)
+                    .dontAnimate()
+                    .into(holder.thumbView);
+        }
         //holder.thumbView.setImageResource(R.drawable.default_artist);
     }
-//
-//    public Item getItem(int position) {
-//        return mData.get(position);
-//    }
-//
-//    public void addItem(final Item item) {
-//        mData.add(item);
-//    }
+
+    public Item getItem(int position) {
+        return mData.get(position);
+    }
+
+
 
     @Override
     public int getItemCount() {
@@ -76,7 +89,6 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
     public boolean onItemDismiss(final int position) {
         mData.remove(position);
         notifyItemRemoved(position);
-        notifyDataSetChanged();
         return true;
     }
 
@@ -105,24 +117,29 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
     }
 
     public static class ItemViewHolder extends RecyclerView.ViewHolder implements
-            ItemTouchHelperViewHolder {
+            ItemTouchHelperViewHolder{
         public TextView songName;
         public TextView artistName;
         public ImageView thumbView;
+        public CardView cv;
 
         public ItemViewHolder(View itemView) {
             super(itemView);
+            cv = itemView.findViewById(R.id.card_view);
             songName = itemView.findViewById(R.id.plistSong);
             artistName = itemView.findViewById(R.id.plistArtist);
-            //thumbView = itemView.findViewById(R.id.plistThumb);
+            thumbView = itemView.findViewById(R.id.plistThumb);
         }
         @Override
         public void onItemSelected() {
-            itemView.setBackgroundColor(0);
+            ((CardView)itemView.findViewById(R.id.card_view)).setCardBackgroundColor(333);
+            //
         }
         @Override
         public void onItemClear() {
-            itemView.setBackgroundColor(0);
+            ((CardView)itemView.findViewById(R.id.card_view)).setCardBackgroundColor(000);
+            //
         }
+
     }
 }

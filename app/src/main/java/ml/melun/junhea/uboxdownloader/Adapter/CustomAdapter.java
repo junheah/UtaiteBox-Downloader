@@ -118,11 +118,11 @@ public class CustomAdapter extends BaseAdapter {
             if(thumb.matches("null")) holder.txtImage.setImageResource(R.drawable.default_artist);
             else{
                 thumb = "http://utaitebox.com/res/artist/image/" + thumb;
-                Glide.with(main).load(thumb).into(holder.txtImage);
+                Glide.with(main).load(thumb).placeholder(R.drawable.default_artist).dontAnimate().into(holder.txtImage);
             }
 
         }
-        else if(Type==2 || Type==3){
+        else if(Type==2){
             holder.txtImage.setVisibility(View.VISIBLE);
             holder.txtValue.setVisibility(View.VISIBLE);
             holder.textView.setVisibility(View.VISIBLE);
@@ -132,11 +132,12 @@ public class CustomAdapter extends BaseAdapter {
                 thumb = "http://utaitebox.com/res/cover/" + thumb;
                 Glide.with(main)
                         .load(thumb)
+                        .placeholder(R.drawable.default_cover)
+                        .dontAnimate()
                         .into(holder.txtImage);
             }
             holder.textView.setText(song.getName());
             holder.txtValue.setText(song.getArtist());
-
         }
         return convertView;
     }

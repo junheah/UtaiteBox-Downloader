@@ -161,6 +161,30 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/playerSeekBar" />
 
+        <ImageButton
+            android:id="@+id/playerNextbtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="15dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/PlayerPlaybtn"
+            app:srcCompat="@android:drawable/ic_media_next"
+            android:background="?android:selectableItemBackground"
+            android:padding="15dp"/>
+
+        <ImageButton
+            android:id="@+id/playerPrevbtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="15dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/PlayerPlaybtn"
+            app:layout_constraintStart_toStartOf="parent"
+            app:srcCompat="@android:drawable/ic_media_previous"
+            android:background="?android:selectableItemBackground"
+            android:padding="15dp"/>
+
 
     </android.support.constraint.ConstraintLayout>
 
