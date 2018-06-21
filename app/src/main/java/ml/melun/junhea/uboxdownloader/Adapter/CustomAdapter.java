@@ -1,4 +1,4 @@
-package ml.melun.junhea.uboxdownloader;
+package ml.melun.junhea.uboxdownloader.Adapter;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +11,9 @@ import com.bumptech.glide.Glide;
 
 import java.util.ArrayList;
 import java.util.TreeSet;
+
+import ml.melun.junhea.uboxdownloader.Item;
+import ml.melun.junhea.uboxdownloader.R;
 
 /**
  * Created by P.Thinesh on 30/11/2016.

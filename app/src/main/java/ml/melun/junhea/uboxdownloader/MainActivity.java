@@ -3,8 +3,6 @@ package ml.melun.junhea.uboxdownloader;
 import android.Manifest;
 import android.app.Activity;
 import android.app.DownloadManager;
-import android.app.Notification;
-import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -16,8 +14,6 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 
 import android.net.Uri;
-import android.net.wifi.WifiManager;
-import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,7 +28,6 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -68,10 +63,13 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 
 import javax.net.ssl.HttpsURLConnection;
+
+import ml.melun.junhea.uboxdownloader.Adapter.CustomAdapter;
+import ml.melun.junhea.uboxdownloader.Adapter.playlistAdapter;
+import ml.melun.junhea.uboxdownloader.ItemTouchHelper.ItemTouchHelperCallback;
 
 
 public class MainActivity extends AppCompatActivity
@@ -100,7 +98,7 @@ public class MainActivity extends AppCompatActivity
     NavigationView navigationView;
     CustomAdapter searchAdapter;
     CustomAdapter likesAdapter;
-    playlistAdapter playlistAdapter;
+    ml.melun.junhea.uboxdownloader.Adapter.playlistAdapter playlistAdapter;
     ArrayList<Long> dllist= new ArrayList<>();
     NotificationCompat.Builder stat;
     NotificationManagerCompat notificationManager;
@@ -123,8 +121,8 @@ public class MainActivity extends AppCompatActivity
     Boolean seekbarPressed = false;
     ProgressBar miniPlayerProgress;
     RecyclerView playListView;
+    ArrayList<Item> playlistItems;
     int songLength = 0;
-    ItemTouchHelper mItemTouchHelper;
     playlistAdapter listAdapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -161,6 +159,17 @@ public class MainActivity extends AppCompatActivity
         playerSongName = findViewById(R.id.playerSongName);
         playerTime = findViewById(R.id.playerTime);
         miniPlayerProgress = findViewById(R.id.miniPlayerProgress);
+
+
+        playListView = findViewById(R.id.playList);
+        playListView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
+        playListView.setHasFixedSize(true);
+        playlistItems = new ArrayList<>();
+        listAdapter = new playlistAdapter(playlistItems,MainActivity.this);
+        new ItemTouchHelper(new ItemTouchHelperCallback(listAdapter)).attachToRecyclerView(playListView);
+        playListView.setAdapter(listAdapter);
+
+
         try {
             nullSongData = new JSONObject()
                     .put("id", 0)
@@ -418,86 +427,103 @@ public class MainActivity extends AppCompatActivity
 
 
     public void setListOnClick(){
-        resultList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+       if(mode==2){
+           //playlist onitemtouchhelper
 
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+       }else {
+           resultList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
-                CustomAdapter tAdapter = null;
-                switch(mode){
-                    case 0: tAdapter = searchAdapter; break;
-                    case 1: tAdapter = likesAdapter; break;
-                    case 2: break;
-                }
-                Item item = tAdapter.getItem(position);
-                System.out.println(item.getName()+","+item.getType());
+               public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
-                switch(item.getType()){
-                    case 0:
-                        int sid = item.getId();
-                        new selectSong().execute(sid);
-                        break;
-                    case 1:
-                        int aid = item.getId();
-                        new selectArtist().execute(aid);
-                        break;
-                    case 2:
-                        break;
-                    case 3:
-                        Item tarItem = tAdapter.getItem(position);
-                        player.putExtra("target", tarItem.getJSON());
-                        playerDeinit();
-                        player.setAction(ACTION_PLAY);
-                        startplayer(player);
-                        break;
-                }
-            }
-        });
-        //longclick
-        resultList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> arg0, View arg1,
-                                           int position, long id) {
-                // TODO Auto-generated method stub
-                CustomAdapter tAdapter = null;
-                switch(mode){
-                    case 0: tAdapter = searchAdapter; break;
-                    case 1: tAdapter = likesAdapter; break;
-                    case 2: break;
-                }
-                Item item = tAdapter.getItem(position);
-                System.out.println(item.getName()+","+item.getType());
+                   CustomAdapter tAdapter = null;
+                   switch (mode) {
+                       case 0:
+                           tAdapter = searchAdapter;
+                           break;
+                       case 1:
+                           tAdapter = likesAdapter;
+                           break;
+                       case 2:
+                           break;
+                   }
+                   Item item = tAdapter.getItem(position);
+                   System.out.println(item.getName() + "," + item.getType());
 
-                switch(item.getType()){
-                    case 0:
-                        break;
-                    case 1:
-                        break;
-                    case 2:
-                        break;
-                    case 3:
-                        Toast.makeText(getApplicationContext(), "다운로드를 시작합니다.", Toast.LENGTH_SHORT).show();
-                        try{
-                            Item dlitem = tAdapter.getItem(position);
-                            String dlkey = dlitem.getKey();
-                            String dltitle = dlitem.getArtist() + " - " + dlitem.getName();
-                            Uri dlurl = Uri.parse("http://utaitebox.com/api/play/stream/"+dlkey);
-                            DownloadManager.Request request = new DownloadManager.Request(dlurl);
-                            request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
-                            request.setAllowedOverRoaming(false);
-                            request.setTitle(dltitle);
-                            request.setDescription("우타이테 박스 다운로더");
-                            request.setVisibleInDownloadsUi(true);
-                            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/UtaiteBoxDownloads/"+dltitle+".mp3");
-                            dllist.add(dlManager.enqueue(request));
-                            break;
-                        }catch(Exception e){
-                            e.printStackTrace();
-                        }
+                   switch (item.getType()) {
+                       case 0:
+                           int sid = item.getId();
+                           new selectSong().execute(sid);
+                           break;
+                       case 1:
+                           int aid = item.getId();
+                           new selectArtist().execute(aid);
+                           break;
+                       case 2:
 
-                }
-                return true;
-            }
-        });
+                           break;
+                       case 3:
+                           Item tarItem = tAdapter.getItem(position);
+                           player.putExtra("target", tarItem.getJSON());
+                           playerDeinit();
+                           player.setAction(ACTION_PLAY);
+                           startplayer(player);
+                           break;
+                   }
+               }
+           });
+
+           //longclick
+           resultList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+               @Override
+               public boolean onItemLongClick(AdapterView<?> arg0, View arg1,
+                                              int position, long id) {
+                   // TODO Auto-generated method stub
+                   CustomAdapter tAdapter = null;
+                   switch (mode) {
+                       case 0:
+                           tAdapter = searchAdapter;
+                           break;
+                       case 1:
+                           tAdapter = likesAdapter;
+                           break;
+                       case 2:
+                           break;
+                   }
+                   Item item = tAdapter.getItem(position);
+                   System.out.println(item.getName() + "," + item.getType());
+
+                   switch (item.getType()) {
+                       case 0:
+                           break;
+                       case 1:
+                           break;
+                       case 2:
+                           break;
+                       case 3:
+                           Toast.makeText(getApplicationContext(), "다운로드를 시작합니다.", Toast.LENGTH_SHORT).show();
+                           try {
+                               Item dlitem = tAdapter.getItem(position);
+                               String dlkey = dlitem.getKey();
+                               String dltitle = dlitem.getArtist() + " - " + dlitem.getName();
+                               Uri dlurl = Uri.parse("http://utaitebox.com/api/play/stream/" + dlkey);
+                               DownloadManager.Request request = new DownloadManager.Request(dlurl);
+                               request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
+                               request.setAllowedOverRoaming(false);
+                               request.setTitle(dltitle);
+                               request.setDescription("우타이테 박스 다운로더");
+                               request.setVisibleInDownloadsUi(true);
+                               request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/UtaiteBoxDownloads/" + dltitle + ".mp3");
+                               dllist.add(dlManager.enqueue(request));
+                               break;
+                           } catch (Exception e) {
+                               e.printStackTrace();
+                           }
+
+                   }
+                   return true;
+               }
+           });
+       }
     }
 
     public void startplayer(Intent service){
@@ -637,13 +663,13 @@ public class MainActivity extends AppCompatActivity
                 setListOnClick();
                 break;
             case 2:
-                playListView = findViewById(R.id.playList);
+                //playListView = findViewById(R.id.playList);
+                //playListView.setAdapter(playlistAdapter);
                 try {
                     new fetchPlaylist().execute(sessionData.getInt("_mid"));
                 }catch (Exception e){
                     //
                 }
-                //setListOnClick();
                 break;
             case 3:
                 break;
@@ -1020,7 +1046,6 @@ public class MainActivity extends AppCompatActivity
             menuNav.getItem(2).setEnabled(false);
             searchAdapter=null;
             likesAdapter=null;
-            playlistAdapter=null;
             mode=0;
             contentHolder.setDisplayedChild(0);
             reloadViews(0);
@@ -1089,21 +1114,20 @@ public class MainActivity extends AppCompatActivity
             resultList.setAdapter(likesAdapter);
         }
     }
-    private class fetchPlaylist extends AsyncTask<Integer, String, ArrayList<Item>> {
+    private class fetchPlaylist extends AsyncTask<Integer, String, Void> {
         protected void onPreExecute() {
             super.onPreExecute();
             pd = new ProgressDialog(MainActivity.this);
             pd.setMessage("로드중");
             pd.setCancelable(false);
             pd.show();
-
             //playlistAdapter.addSectionHeaderItem(new Item(0,"플레이리스트",-1,null,null,null));
         }
 
-        protected ArrayList<Item> doInBackground(Integer... params) {
+        protected Void doInBackground(Integer... params) {
             //String data = jsonGet("http://utaitebox.com/api/source/"+params[0]);
             //다국어로 제목 불러올 수 있음
-            ArrayList<Item> items = new ArrayList<>();
+            playlistItems = new ArrayList<>();
             String rawdata = httpGet("http://utaitebox.com/api/member/" + params[0] + "/playlist");
 
             try {
@@ -1115,27 +1139,23 @@ public class MainActivity extends AppCompatActivity
                     String name = obj.getString("song_original");
                     String thumb = obj.getString("cover");
                     String key = obj.getString("key");
-                    items.add(new Item(0, name, 2, thumb, key,artist));
+                    playlistItems.add(new Item(0, name, 2, thumb, key,artist));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            return items;
+            return null;
         }
 
         @Override
-        protected void onPostExecute(ArrayList<Item> result) {
+        protected void onPostExecute(Void result) {
             super.onPostExecute(result);
             if (pd.isShowing()){
                 pd.dismiss();
             }
-            listAdapter = new playlistAdapter(result,MainActivity.this);
-            playListView.setHasFixedSize(true);
-            playListView.setAdapter(listAdapter);
-            playListView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
-            ItemTouchHelper.Callback callback = new ItemTouchHelperCallback(listAdapter);
-            mItemTouchHelper = new ItemTouchHelper(callback);
-            mItemTouchHelper.attachToRecyclerView(playListView);
+            listAdapter.swap(playlistItems);
+
         }
     }
+
 }

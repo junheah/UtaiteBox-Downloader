@@ -1,4 +1,4 @@
-package ml.melun.junhea.uboxdownloader;
+package ml.melun.junhea.uboxdownloader.ItemTouchHelper;
 
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -15,12 +15,12 @@ import android.support.v7.widget.helper.ItemTouchHelper;
  */
 public class ItemTouchHelperCallback extends ItemTouchHelper.Callback {
 
-
-    private final ItemTouchHelperAdapter mAdapter;
+    private ItemTouchHelperAdapter mAdapter;
 
     public ItemTouchHelperCallback(ItemTouchHelperAdapter adapter) {
         mAdapter = adapter;
     }
+
 
     @Override
     public boolean isLongPressDragEnabled() {

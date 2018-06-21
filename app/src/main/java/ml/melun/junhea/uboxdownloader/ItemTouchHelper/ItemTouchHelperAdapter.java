@@ -1,4 +1,4 @@
-package ml.melun.junhea.uboxdownloader;
+package ml.melun.junhea.uboxdownloader.ItemTouchHelper;
 /*
  * Copyright (C) 2015 Paul Burke
  *

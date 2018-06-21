@@ -1,9 +1,8 @@
-package ml.melun.junhea.uboxdownloader;
+package ml.melun.junhea.uboxdownloader.Adapter;
 
-import android.app.Fragment;
 import android.content.Context;
 import android.graphics.Color;
-import android.support.v7.view.menu.MenuView;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,10 +15,16 @@ import com.bumptech.glide.Glide;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import ml.melun.junhea.uboxdownloader.Item;
+import ml.melun.junhea.uboxdownloader.ItemTouchHelper.ItemTouchHelperAdapter;
+import ml.melun.junhea.uboxdownloader.ItemTouchHelper.ItemTouchHelperViewHolder;
+import ml.melun.junhea.uboxdownloader.R;
+
 public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemViewHolder>
-        implements ItemTouchHelperAdapter{
-    private final ArrayList<Item> mData;
+        implements ItemTouchHelperAdapter {
+    private ArrayList<Item> mData;
     private Context main;
+
     public playlistAdapter(ArrayList<Item> list, Context context){
         mData = list;
         main = context;
@@ -32,8 +37,8 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
         ItemViewHolder itemViewHolder = new ItemViewHolder(view);
         return itemViewHolder;
     }
-    @Override
 
+    @Override
     public void onBindViewHolder(ItemViewHolder holder, int position) {
         //set contents of views
         Item song = mData.get(position);
@@ -43,15 +48,15 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
         String thumb= song.getThumb();
 
         //todo: glide inside recycler view doesnt work
-        if(thumb.matches("null")) holder.thumbView.setImageResource(R.drawable.default_cover);
-        else{
-            thumb = "http://utaitebox.com/res/artist/image/" + thumb;
-            //System.out.println(thumb);
-            Glide.with(main.getApplicationContext())
-                    .load(thumb)
-                    .placeholder(R.drawable.default_cover)
-                    .into(holder.thumbView);
-        }
+//        if(thumb.matches("null")) holder.thumbView.setImageResource(R.drawable.default_cover);
+//        else{
+//            thumb = "http://utaitebox.com/res/artist/image/" + thumb;
+//            //System.out.println(thumb);
+//            Glide.with(main.getApplicationContext())
+//                    .load(thumb)
+//                    .placeholder(R.drawable.default_cover)
+//                    .into(holder.thumbView);
+//        }
         //holder.thumbView.setImageResource(R.drawable.default_artist);
     }
 //
@@ -71,10 +76,19 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
     public boolean onItemDismiss(final int position) {
         mData.remove(position);
         notifyItemRemoved(position);
+        notifyDataSetChanged();
         return true;
     }
-    @Override
 
+    public void swap(ArrayList<Item> data)
+    {
+        if(data == null || data.size()==0) return;
+        if (mData != null && mData.size()>0) mData.clear();
+        mData.addAll(data);
+        notifyDataSetChanged();
+    }
+
+    @Override
     public boolean onItemMove(final int fromPosition, final int toPosition) {
         //System.out.println(fromPosition +" to " + toPosition);
         if (fromPosition < toPosition) {
@@ -90,7 +104,6 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
         return true;
     }
 
-
     public static class ItemViewHolder extends RecyclerView.ViewHolder implements
             ItemTouchHelperViewHolder {
         public TextView songName;
@@ -101,13 +114,13 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
             super(itemView);
             songName = itemView.findViewById(R.id.plistSong);
             artistName = itemView.findViewById(R.id.plistArtist);
-            thumbView = itemView.findViewById(R.id.plistThumb);
+            //thumbView = itemView.findViewById(R.id.plistThumb);
         }
-
+        @Override
         public void onItemSelected() {
-            itemView.setBackgroundColor(Color.LTGRAY);
+            itemView.setBackgroundColor(0);
         }
-
+        @Override
         public void onItemClear() {
             itemView.setBackgroundColor(0);
         }

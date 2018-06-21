@@ -1,7 +1,5 @@
 package ml.melun.junhea.uboxdownloader;
 
-import android.annotation.TargetApi;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -10,33 +8,21 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.wifi.WifiManager;
-import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.PowerManager;
-import android.provider.SyncStateContract;
 import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.content.ContextCompat;
-import android.widget.Button;
-import android.widget.ImageButton;
-import android.widget.MediaController;
 import android.widget.RemoteViews;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.NotificationTarget;
 
 import org.json.JSONObject;
-
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class PlayerService extends Service implements MediaPlayer.OnPreparedListener {
     public static final String ACTION_PLAY = "ml.melun.junhea.uboxdownloader.action.PLAY";

@@ -1,4 +1,4 @@
-package ml.melun.junhea.uboxdownloader;
+package ml.melun.junhea.uboxdownloader.ItemTouchHelper;
 
 import android.support.v7.widget.helper.ItemTouchHelper;
 
