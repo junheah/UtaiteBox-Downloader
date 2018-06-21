@@ -29,6 +29,9 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -97,7 +100,7 @@ public class MainActivity extends AppCompatActivity
     NavigationView navigationView;
     CustomAdapter searchAdapter;
     CustomAdapter likesAdapter;
-    CustomAdapter playlistAdapter;
+    playlistAdapter playlistAdapter;
     ArrayList<Long> dllist= new ArrayList<>();
     NotificationCompat.Builder stat;
     NotificationManagerCompat notificationManager;
@@ -119,7 +122,10 @@ public class MainActivity extends AppCompatActivity
     JSONObject nullSongData;
     Boolean seekbarPressed = false;
     ProgressBar miniPlayerProgress;
+    RecyclerView playListView;
     int songLength = 0;
+    ItemTouchHelper mItemTouchHelper;
+    playlistAdapter listAdapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -420,7 +426,7 @@ public class MainActivity extends AppCompatActivity
                 switch(mode){
                     case 0: tAdapter = searchAdapter; break;
                     case 1: tAdapter = likesAdapter; break;
-                    case 2: tAdapter = playlistAdapter; break;
+                    case 2: break;
                 }
                 Item item = tAdapter.getItem(position);
                 System.out.println(item.getName()+","+item.getType());
@@ -435,6 +441,7 @@ public class MainActivity extends AppCompatActivity
                         new selectArtist().execute(aid);
                         break;
                     case 2:
+                        break;
                     case 3:
                         Item tarItem = tAdapter.getItem(position);
                         player.putExtra("target", tarItem.getJSON());
@@ -455,7 +462,7 @@ public class MainActivity extends AppCompatActivity
                 switch(mode){
                     case 0: tAdapter = searchAdapter; break;
                     case 1: tAdapter = likesAdapter; break;
-                    case 2: tAdapter = playlistAdapter; break;
+                    case 2: break;
                 }
                 Item item = tAdapter.getItem(position);
                 System.out.println(item.getName()+","+item.getType());
@@ -466,6 +473,7 @@ public class MainActivity extends AppCompatActivity
                     case 1:
                         break;
                     case 2:
+                        break;
                     case 3:
                         Toast.makeText(getApplicationContext(), "다운로드를 시작합니다.", Toast.LENGTH_SHORT).show();
                         try{
@@ -629,14 +637,13 @@ public class MainActivity extends AppCompatActivity
                 setListOnClick();
                 break;
             case 2:
-                resultList = findViewById(R.id.likesList);
-                resultList.setAdapter(playlistAdapter);
+                playListView = findViewById(R.id.playList);
                 try {
                     new fetchPlaylist().execute(sessionData.getInt("_mid"));
                 }catch (Exception e){
                     //
                 }
-                setListOnClick();
+                //setListOnClick();
                 break;
             case 3:
                 break;
@@ -664,8 +671,8 @@ public class MainActivity extends AppCompatActivity
             reloadViews(1);
             mode=1;
         } else if (id == R.id.playList) {
-            //playlist mode (basically liked mode
-            contentHolder.setDisplayedChild(1);
+            //todo: playlist
+            contentHolder.setDisplayedChild(2);
             reloadViews(2);
             mode=2;
         } else if (id == R.id.logIn) {
@@ -1082,21 +1089,21 @@ public class MainActivity extends AppCompatActivity
             resultList.setAdapter(likesAdapter);
         }
     }
-    private class fetchPlaylist extends AsyncTask<Integer, String, String> {
+    private class fetchPlaylist extends AsyncTask<Integer, String, ArrayList<Item>> {
         protected void onPreExecute() {
             super.onPreExecute();
             pd = new ProgressDialog(MainActivity.this);
             pd.setMessage("로드중");
             pd.setCancelable(false);
             pd.show();
-            playlistAdapter = new CustomAdapter(MainActivity.this);
-            playlistAdapter.addSectionHeaderItem(new Item(0,"플레이리스트",-1,null,null,null));
+
+            //playlistAdapter.addSectionHeaderItem(new Item(0,"플레이리스트",-1,null,null,null));
         }
 
-        protected String doInBackground(Integer... params) {
+        protected ArrayList<Item> doInBackground(Integer... params) {
             //String data = jsonGet("http://utaitebox.com/api/source/"+params[0]);
             //다국어로 제목 불러올 수 있음
-
+            ArrayList<Item> items = new ArrayList<>();
             String rawdata = httpGet("http://utaitebox.com/api/member/" + params[0] + "/playlist");
 
             try {
@@ -1108,21 +1115,27 @@ public class MainActivity extends AppCompatActivity
                     String name = obj.getString("song_original");
                     String thumb = obj.getString("cover");
                     String key = obj.getString("key");
-                    playlistAdapter.addItem(new Item(0, name, 2, thumb, key,artist));
+                    items.add(new Item(0, name, 2, thumb, key,artist));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            return null;
+            return items;
         }
 
         @Override
-        protected void onPostExecute(String result) {
+        protected void onPostExecute(ArrayList<Item> result) {
             super.onPostExecute(result);
             if (pd.isShowing()){
                 pd.dismiss();
             }
-            resultList.setAdapter(playlistAdapter);
+            listAdapter = new playlistAdapter(result,MainActivity.this);
+            playListView.setHasFixedSize(true);
+            playListView.setAdapter(listAdapter);
+            playListView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
+            ItemTouchHelper.Callback callback = new ItemTouchHelperCallback(listAdapter);
+            mItemTouchHelper = new ItemTouchHelper(callback);
+            mItemTouchHelper.attachToRecyclerView(playListView);
         }
     }
 }

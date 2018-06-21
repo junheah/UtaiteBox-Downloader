@@ -58,6 +58,7 @@ public class CustomAdapter extends BaseAdapter {
 
     public View getView(int position, View convertView, ViewGroup parent) {
         ViewHolder holder = null;
+        Item song = mData.get(position);
         int Type = getItemViewType(position);
         if (convertView == null) {
             holder = new ViewHolder();
@@ -99,18 +100,18 @@ public class CustomAdapter extends BaseAdapter {
 
         if(Type == -1){
             holder.textView.setVisibility(View.VISIBLE);
-            holder.textView.setText(mData.get(position).getName());
+            holder.textView.setText(song.getName());
         }else if(Type==0){
             holder.txtValue.setVisibility(View.GONE);
             holder.txtImage.setVisibility(View.GONE);
             holder.textView.setVisibility(View.VISIBLE);
-            holder.textView.setText(mData.get(position).getName());
+            holder.textView.setText(song.getName());
         }else if(Type==1){
             holder.txtImage.setVisibility(View.VISIBLE);
             holder.txtValue.setVisibility(View.GONE);
             holder.textView.setVisibility(View.VISIBLE);
-            holder.textView.setText(mData.get(position).getArtist());
-            String thumb= mData.get(position).getThumb();
+            holder.textView.setText(song.getArtist());
+            String thumb= song.getThumb();
             if(thumb.matches("null")) holder.txtImage.setImageResource(R.drawable.default_artist);
             else{
                 thumb = "http://utaitebox.com/res/artist/image/" + thumb;
@@ -122,7 +123,7 @@ public class CustomAdapter extends BaseAdapter {
             holder.txtImage.setVisibility(View.VISIBLE);
             holder.txtValue.setVisibility(View.VISIBLE);
             holder.textView.setVisibility(View.VISIBLE);
-            String thumb = mData.get(position).getThumb();
+            String thumb = song.getThumb();
             if(thumb.matches("null")) holder.txtImage.setImageResource(R.drawable.default_cover);
             else {
                 thumb = "http://utaitebox.com/res/cover/" + thumb;
@@ -130,8 +131,8 @@ public class CustomAdapter extends BaseAdapter {
                         .load(thumb)
                         .into(holder.txtImage);
             }
-            holder.textView.setText(mData.get(position).getName());
-            holder.txtValue.setText(mData.get(position).getArtist());
+            holder.textView.setText(song.getName());
+            holder.txtValue.setText(song.getArtist());
 
         }
         return convertView;

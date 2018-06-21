@@ -46,7 +46,7 @@
                 layout="@layout/content_likes" />
             <include
                 android:id="@+id/playlistLayout"
-                layout="@layout/content_main" />
+                layout="@layout/content_playlist" />
 
 
         </ViewFlipper>
