@@ -28,10 +28,12 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
         implements ItemTouchHelperAdapter {
     private ArrayList<Item> mData;
     private Context main;
+    private int nowPlaying = -1;
 
     public playlistAdapter(ArrayList<Item> list, Context context){
         mData = list;
         main = context;
+        nowPlaying = -1;
     }
     public String getPlayList(){
         JSONArray playlist = new JSONArray();
@@ -59,6 +61,11 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
         Item song = mData.get(position);
         holder.songName.setText(song.getName());
         holder.artistName.setText(song.getArtist());
+        if(position==nowPlaying){
+            holder.cv.setCardBackgroundColor(Color.LTGRAY);
+        }else{
+            holder.cv.setCardBackgroundColor(Color.WHITE);
+        }
 //
         String thumb= song.getThumb();
 
@@ -115,6 +122,16 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
         notifyItemMoved(fromPosition, toPosition);
         return true;
     }
+    public void setPosition(int pos){
+        if(pos>=0) {
+            int prev = nowPlaying;
+            nowPlaying = pos;
+            notifyItemChanged(prev);
+            notifyItemChanged(nowPlaying);
+        }else{
+            nowPlaying=-1;
+        }
+    }
 
     public static class ItemViewHolder extends RecyclerView.ViewHolder implements
             ItemTouchHelperViewHolder{
@@ -122,7 +139,6 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
         public TextView artistName;
         public ImageView thumbView;
         public CardView cv;
-
         public ItemViewHolder(View itemView) {
             super(itemView);
             cv = itemView.findViewById(R.id.card_view);
@@ -132,12 +148,10 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
         }
         @Override
         public void onItemSelected() {
-            ((CardView)itemView.findViewById(R.id.card_view)).setCardBackgroundColor(333);
             //
         }
         @Override
         public void onItemClear() {
-            ((CardView)itemView.findViewById(R.id.card_view)).setCardBackgroundColor(000);
             //
         }
 

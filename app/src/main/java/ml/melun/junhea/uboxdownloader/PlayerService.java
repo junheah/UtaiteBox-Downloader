@@ -49,6 +49,8 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
     NotificationCompat.Builder notification;
     JSONArray playlist;
     int position=0;
+    Boolean single = true;
+    Boolean busy =false;
 
 
     @Override
@@ -71,6 +73,7 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
                     .put("artist", "")
                     .put("thumb", "null")
                     .put("key", "");
+            playlist = new JSONArray();
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -78,6 +81,7 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
         intent = new Intent();
         timerIntent = new Intent();
         stopintent = new Intent();
+
 
         mediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
         wifiLock = ((WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE))
@@ -103,7 +107,7 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
                 if(position==playlist.length()-1){
                     System.out.println("complete!");
                     stopT();
-                    broadcast();
+                    broadcast(false);
                 }else{
                     position++;
                     stopT();
@@ -124,89 +128,99 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
     public void onPrepared(MediaPlayer player) {
         System.out.println("prepared!");
         mediaPlayer.start();
-        broadcast();
+        broadcast(false);
         stopT();
         startT();
         updateNotification();
+        busy=false;
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         String action = intent.getAction();
-        switch(action) {
-            case ACTION_PLAY:
-                mediaPlayer.reset();
-                try {
-                    mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-                    playlist = new JSONArray(intent.getStringExtra("playlist"));
-                    position = Integer.parseInt(intent.getStringExtra("position"));
-                    play();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                broadcast();
-                break;
-
-
-            case ACTION_PAUSE:
-                if (!mediaPlayer.isPlaying()) {
-                    mediaPlayer.start();
-                    startT();
-                }else{
-                    mediaPlayer.pause();
-                    stopT();
-                }
-                broadcast();
-                updateNotification();
-                break;
-
-            case ACTION_STOP:
-                stopSelf();
-                break;
-            case ACTION_NEXT:
-                System.out.println(position+", "+playlist.length());
-                if(position+1<playlist.length()){
-                    position++;
-                    play();
-                }
-                break;
-            case ACTION_PREV:
-                if(mediaPlayer.getCurrentPosition()>3000){
-                    mediaPlayer.seekTo(0);
-                    stopT();
-                    startT();
-                }else {
-                    if(position>0){
-                        position--;
+        //if(!busy) {
+            switch (action) {
+                case ACTION_PLAY:
+                    try {
+                        busy = true;
+                        playlist = new JSONArray(intent.getStringExtra("playlist"));
+                        position = intent.getIntExtra("position", 0);
+                        single = intent.getBooleanExtra("single", false);
                         play();
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                }
-                break;
-            case ACTION_SET:
-                int tarT = Integer.parseInt(intent.getStringExtra("time"));
-                mediaPlayer.seekTo(tarT);
-                break;
+                    break;
+                case ACTION_PAUSE:
+                    if (!mediaPlayer.isPlaying()) {
+                        mediaPlayer.start();
+                        startT();
+                    } else {
+                        mediaPlayer.pause();
+                        stopT();
+                    }
+                    broadcast(false);
+                    updateNotification();
+                    break;
 
-            case ACTION_GETINFO:
-                broadcast();
-                break;
-        }
+                case ACTION_STOP:
+                    stopSelf();
+                    break;
+                case ACTION_NEXT:
+                    System.out.println(position + ", " + playlist.length());
+                    if (position + 1 < playlist.length()) {
+                        position++;
+                        play();
+                    }else broadcast(false);
+
+                    break;
+                case ACTION_PREV:
+                    if (mediaPlayer.getCurrentPosition() > 3000) {
+                        mediaPlayer.seekTo(0);
+                        stopT();
+                        startT();
+                    } else {
+                        if (position > 0) {
+                            position--;
+                            stopT();
+                            play();
+                        }else broadcast(false);
+                    }
+
+                    break;
+                case ACTION_SET:
+                    int tarT = Integer.parseInt(intent.getStringExtra("time"));
+                    mediaPlayer.seekTo(tarT);
+                    broadcast(false);
+                    break;
+
+                case ACTION_GETINFO:
+                    broadcast(true);
+                    break;
+            }
+        //}
         return START_STICKY;
     }
 
 
-    public void broadcast(){
+    public void broadcast(boolean pl){
         intent.setAction(BROADCAST_ACTION);
-        intent.putExtra("position", position+"");
+        if(pl){
+            intent.putExtra("playlist", playlist.toString());
+        }else{
+            intent.putExtra("playlist","");
+        }
+        intent.putExtra("position", position);
         intent.putExtra("playing",mediaPlayer.isPlaying());
+        intent.putExtra("single",single);
         sendBroadcast(intent);
     }
 
     public void broadcasttime(int length, int current){
         timerIntent.setAction(BROADCAST_TIME);
-        timerIntent.putExtra("length", length+"");
-        timerIntent.putExtra("current", current+"");
+        timerIntent.putExtra("length", length);
+        timerIntent.putExtra("current", current);
         sendBroadcast(timerIntent);
     }
 
@@ -224,7 +238,7 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
                     + songData.get("key"));
             mediaPlayer.setOnPreparedListener(this);
             mediaPlayer.prepareAsync();
-            showNotification();
+            //showNotification();
         } catch (Exception e) {
             e.printStackTrace();
         }

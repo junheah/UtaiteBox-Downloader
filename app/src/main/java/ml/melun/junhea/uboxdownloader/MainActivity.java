@@ -4,6 +4,7 @@ package ml.melun.junhea.uboxdownloader;
 //todo 리스트뷰 없애고 리사이클러로 변경
 //todo UI 개선
 //todo 오프라인 모드 개선 (라이브러리 기능 추가, 오프라인 플레이리스트)
+//todo playlist 탭 들어갔다 likes 탭 들어가면 onclicklistener가 적용이 안됨
 
 import android.Manifest;
 import android.app.Activity;
@@ -30,6 +31,7 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -109,7 +111,6 @@ public class MainActivity extends AppCompatActivity
     int searchStage=0;
     //searched nothing = 0 , searched all = 1 , got to result page = 2
     CustomAdapter likesAdapter;
-    ml.melun.junhea.uboxdownloader.Adapter.playlistAdapter playlistAdapter;
     ArrayList<Long> dllist= new ArrayList<>();
     NotificationCompat.Builder stat;
     NotificationManagerCompat notificationManager;
@@ -137,6 +138,8 @@ public class MainActivity extends AppCompatActivity
     playlistAdapter listAdapter;
     int playlistPosition=0;
     JSONArray playlist;
+    String settingsString;
+    JSONObject settings;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -187,12 +190,13 @@ public class MainActivity extends AppCompatActivity
                 new RecyclerItemClickListener(this, playListView ,new RecyclerItemClickListener.OnItemClickListener() {
                     @Override public void onItemClick(View view, int position) {
                         // add playlist to service
-                        System.out.println(listAdapter.getPlayList());
+                        //System.out.println(listAdapter.getPlayList());
                         try {
                             playlist = new JSONArray(listAdapter.getPlayList());
                             player.putExtra("playlist", playlist.toString());
-                            player.putExtra("position", position + "");
-                            //playerDeinit();
+                            player.putExtra("position", position);
+                            player.putExtra("single", false);
+                            playerDeinit();
                             player.setAction(PlayerService.ACTION_PLAY);
                             startplayer(player);
 
@@ -262,6 +266,7 @@ public class MainActivity extends AppCompatActivity
         // session
         sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         sessionString = sharedPref.getString(getString(R.string.session_file),"");
+        refreshSettings();
         if(sessionString.matches("")) {
             //data is empty
             menuNav.getItem(1).setEnabled(false);
@@ -307,13 +312,10 @@ public class MainActivity extends AppCompatActivity
         //player service intent
         player = new Intent(this,PlayerService.class);
 
-
         miniPlayerPlaybtn.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 player.setAction(ACTION_PAUSE);
                 startplayer(player);
-
-
             }
         });
         playerPlaybtn.setOnClickListener(new View.OnClickListener() {
@@ -342,15 +344,30 @@ public class MainActivity extends AppCompatActivity
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
                 if(action.matches(PlayerService.BROADCAST_ACTION)) {
-                    playlistPosition = Integer.parseInt(intent.getStringExtra("position"));
+                    playlistPosition = intent.getIntExtra("position",0);
+                    String playliststr = intent.getStringExtra("playlist");
+                    if(playliststr.matches("")){
+                        //no playlist sync needed
+                    }else{
+                        try{
+                            playlist = new JSONArray(playliststr);
+                        }catch(Exception e){
+                            //
+                        }
+                    }
                     boolean playing = intent.getBooleanExtra("playing", false);
-
                     if (playing) {
                         miniPlayerPlaybtn.setImageResource(android.R.drawable.ic_media_play);
                         playerPlaybtn.setImageResource(android.R.drawable.ic_media_play);
                     } else {
                         miniPlayerPlaybtn.setImageResource(android.R.drawable.ic_media_pause);
                         playerPlaybtn.setImageResource(android.R.drawable.ic_media_pause);
+                    }
+                    if(intent.getBooleanExtra("single",false)){
+                        listAdapter.setPosition(-1);
+                    }
+                    else{
+                        listAdapter.setPosition(playlistPosition);
                     }
 
                     try {
@@ -360,21 +377,29 @@ public class MainActivity extends AppCompatActivity
                     } catch (Exception e) {
                         //
                     }
+                    try {
+                        if (playerCurrentSong.getString("name").matches("")) playerDeinit();
+                        else playerInit();
+                    }catch(Exception e){
+
+                    }
 
                 }else if(action.matches(PlayerService.BROADCAST_TIME)){
                     if(!seekbarPressed) {
-                        songLength = Integer.parseInt(intent.getStringExtra("length"));
-                        int current = Integer.parseInt(intent.getStringExtra("current"));
+                        songLength = intent.getIntExtra("length",0);
+                        int current = intent.getIntExtra("current",0);
                         playerSeekBar.setMax(songLength);
                         playerSeekBar.setProgress(current);
                         miniPlayerProgress.setMax(songLength);
                         miniPlayerProgress.setProgress(current);
                         playerTime.setText(getTimeStamp(current) + " | " + getTimeStamp(songLength));
                     }
+                    playerInit();
                 }else if(action.matches(PlayerService.BROADCAST_STOP)){
                     updatePlayer(nullSongData);
                     playerDeinit();
                 }
+
             }
         };
         IntentFilter infil = new IntentFilter();
@@ -443,12 +468,13 @@ public class MainActivity extends AppCompatActivity
                 thumb = "http://utaitebox.com/res/cover/" + thumb;
                 Glide.with(this)
                         .load(thumb)
+                        .dontAnimate()
                         .into(miniPlayerCover);
             }
             if(name.length()>0){
                 playerInit();
             }else{
-                //playerDeinit();
+                playerDeinit();
             }
 
         }catch(Exception e){
@@ -473,6 +499,12 @@ public class MainActivity extends AppCompatActivity
         playerTime.setText("");
         playerPlaybtn.setImageResource(android.R.drawable.ic_media_pause);
         miniPlayerPlaybtn.setImageResource(android.R.drawable.ic_media_pause);
+    }
+    public void playerBtnDeinit(){
+        miniPlayerPlaybtn.setEnabled(false);
+        playerPlaybtn.setEnabled(false);
+        playerNextbtn.setEnabled(false);
+        playerPrevbtn.setEnabled(false);
     }
 
 
@@ -521,8 +553,9 @@ public class MainActivity extends AppCompatActivity
                                playlist= new JSONArray("["+tarItem.getJSON()+"]");
                                playlistPosition=0;
                                player.putExtra("playlist", playlist.toString());
-                               player.putExtra("position",playlistPosition+"");
-                               //playerDeinit();
+                               player.putExtra("position",playlistPosition);
+                               player.putExtra("single",true);
+                               playerDeinit();
                                player.setAction(ACTION_PLAY);
                                startplayer(player);
                            }catch(Exception e){
@@ -588,6 +621,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void startplayer(Intent service){
+        playerBtnDeinit();
         if (Build.VERSION.SDK_INT >= 26) {
             startForegroundService(service);
         }else{
@@ -630,15 +664,16 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
+        // actionbar clicks
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.check_update) {
             new updateCheck().execute();
             return true;
+        }else if(id == R.id.settings) {
+            Intent settingsTask = new Intent(this, SettingsActivity.class);
+            startActivity(settingsTask);
         }
 
         return super.onOptionsItemSelected(item);
@@ -691,7 +726,7 @@ public class MainActivity extends AppCompatActivity
 
             @Override
             public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
-
+                if(newState== SlidingUpPanelLayout.PanelState.EXPANDED)updatePlayer(playerCurrentSong);
 
             }
         });
@@ -727,6 +762,7 @@ public class MainActivity extends AppCompatActivity
                 break;
             case 1:
                 resultList = findViewById(R.id.likesList);
+                likesAdapter = new CustomAdapter(this);
                 resultList.setAdapter(likesAdapter);
                 try {
                     new fetchLikes().execute(sessionData.getInt("_mid"));
@@ -1233,6 +1269,20 @@ public class MainActivity extends AppCompatActivity
             listAdapter.swap(playlistItems);
             //listAdapter.notifyDataSetChanged();
 
+        }
+    }
+
+    public void refreshSettings(){
+        settingsString = sharedPref.getString(getString(R.string.settings),"");
+        if(settingsString.matches("")) {
+            //data is empty
+        }else{
+            try{
+                settings = new JSONObject(settingsString);
+                //todo handle settings
+            }catch(Exception e){
+                e.printStackTrace();
+            }
         }
     }
 
