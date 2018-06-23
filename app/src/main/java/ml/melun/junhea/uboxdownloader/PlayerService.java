@@ -41,13 +41,14 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
     IBinder mBinder = new LocalBinder();
     Intent intent, timerIntent, stopintent;
     JSONObject songData = null;
+    JSONObject nullSongData;
     WifiManager.WifiLock wifiLock;
     private boolean started = false;
     private Handler handler = new Handler();
     private Runnable runnable;
     RemoteViews playerView;
     NotificationCompat.Builder notification;
-    JSONArray playlist;
+    JSONArray playlist, nullPlayList;
     int position=0;
     Boolean single = true;
     Boolean busy =false;
@@ -73,7 +74,9 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
                     .put("artist", "")
                     .put("thumb", "null")
                     .put("key", "");
+            nullSongData=songData;
             playlist = new JSONArray();
+            nullPlayList=playlist;
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -165,15 +168,16 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
                     break;
 
                 case ACTION_STOP:
+                    position=0;
+                    songData=nullSongData;
+                    playlist=nullPlayList;
                     stopSelf();
                     break;
                 case ACTION_NEXT:
-                    System.out.println(position + ", " + playlist.length());
                     if (position + 1 < playlist.length()) {
                         position++;
                         play();
                     }else broadcast(false);
-
                     break;
                 case ACTION_PREV:
                     if (mediaPlayer.getCurrentPosition() > 3000) {
@@ -197,6 +201,19 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
 
                 case ACTION_GETINFO:
                     broadcast(true);
+                    break;
+
+                case ACTION_PLAYLIST:
+                    if(!single) {
+                        try {
+                            playlist = new JSONArray(intent.getStringExtra("playlist"));
+                            position = intent.getIntExtra("position", 0);
+                            System.out.println(position+ "    " + playlist.toString());
+                            broadcast(true);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
                     break;
             }
         //}

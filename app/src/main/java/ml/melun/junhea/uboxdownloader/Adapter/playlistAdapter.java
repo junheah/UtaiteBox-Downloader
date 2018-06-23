@@ -1,7 +1,9 @@
 package ml.melun.junhea.uboxdownloader.Adapter;
 //todo 플레이리스트 변경시 서비스 플레이리스트도 변경
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
+import android.os.Build;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -22,18 +24,25 @@ import java.util.Collections;
 import ml.melun.junhea.uboxdownloader.Item;
 import ml.melun.junhea.uboxdownloader.ItemTouchHelper.ItemTouchHelperAdapter;
 import ml.melun.junhea.uboxdownloader.ItemTouchHelper.ItemTouchHelperViewHolder;
+import ml.melun.junhea.uboxdownloader.MainActivity;
+import ml.melun.junhea.uboxdownloader.PlayerService;
 import ml.melun.junhea.uboxdownloader.R;
+
+import static ml.melun.junhea.uboxdownloader.PlayerService.ACTION_PLAYLIST;
 
 public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemViewHolder>
         implements ItemTouchHelperAdapter {
     private ArrayList<Item> mData;
     private Context main;
     private int nowPlaying = -1;
+    private Intent plUpdater;
 
     public playlistAdapter(ArrayList<Item> list, Context context){
         mData = list;
         main = context;
         nowPlaying = -1;
+        plUpdater = new Intent(main.getApplicationContext(),PlayerService.class);
+        plUpdater.setAction(ACTION_PLAYLIST);
     }
     public String getPlayList(){
         JSONArray playlist = new JSONArray();
@@ -120,18 +129,35 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
             }
         }
         notifyItemMoved(fromPosition, toPosition);
+        System.out.println(toPosition + "      " + fromPosition);
+        if(fromPosition == nowPlaying) nowPlaying = toPosition;
+        else if(toPosition == nowPlaying) nowPlaying = fromPosition;
+        notifyPlaylistChange();
         return true;
     }
+
+    public void notifyPlaylistChange(){
+        //submit change to service
+        plUpdater.putExtra("playlist",getPlayList());
+        plUpdater.putExtra("position",nowPlaying);
+        if (Build.VERSION.SDK_INT >= 26) {
+            main.startForegroundService(plUpdater);
+        }else{
+            main.startService(plUpdater);
+        }
+        //todo submit change to server
+    }
+
+
     public void setPosition(int pos){
-        if(pos>=0) {
+        if(pos!=nowPlaying) {
             int prev = nowPlaying;
             nowPlaying = pos;
             notifyItemChanged(prev);
             notifyItemChanged(nowPlaying);
-        }else{
-            nowPlaying=-1;
         }
     }
+
 
     public static class ItemViewHolder extends RecyclerView.ViewHolder implements
             ItemTouchHelperViewHolder{
@@ -156,4 +182,5 @@ public class playlistAdapter extends RecyclerView.Adapter<playlistAdapter.ItemVi
         }
 
     }
+
 }

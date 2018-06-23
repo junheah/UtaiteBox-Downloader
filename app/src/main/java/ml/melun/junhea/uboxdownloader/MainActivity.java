@@ -31,7 +31,6 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -396,10 +395,13 @@ public class MainActivity extends AppCompatActivity
                     }
                     playerInit();
                 }else if(action.matches(PlayerService.BROADCAST_STOP)){
-                    updatePlayer(nullSongData);
+                    playerCurrentSong=nullSongData;
+                    playlistPosition=-1;
+                    playlist=new JSONArray();
+                    updatePlayer(playerCurrentSong);
                     playerDeinit();
+                    listAdapter.setPosition(-1);
                 }
-
             }
         };
         IntentFilter infil = new IntentFilter();
@@ -628,6 +630,7 @@ public class MainActivity extends AppCompatActivity
             startService(service);
         }
     }
+
 
 
 
