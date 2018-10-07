@@ -9,6 +9,9 @@ package ml.melun.junhea.uboxdownloader;
 import android.Manifest;
 import android.app.Activity;
 import android.app.DownloadManager;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -19,6 +22,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -112,7 +116,6 @@ public class MainActivity extends AppCompatActivity
     CustomAdapter likesAdapter;
     ArrayList<Long> dllist= new ArrayList<>();
     NotificationCompat.Builder stat;
-    NotificationManagerCompat notificationManager;
     BroadcastReceiver onComplete;
     ViewFlipper contentHolder;
     Toolbar toolbar;
@@ -139,6 +142,8 @@ public class MainActivity extends AppCompatActivity
     JSONArray playlist;
     String settingsString;
     JSONObject settings;
+    NotificationManagerCompat notificationManagerc;
+    NotificationManager notificationManager = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -150,7 +155,6 @@ public class MainActivity extends AppCompatActivity
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
-        notificationManager = NotificationManagerCompat.from(MainActivity.this);
         dlManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
         setContentView(R.layout.activity_main);
         searchBox = findViewById(R.id.searchBox);
@@ -253,6 +257,19 @@ public class MainActivity extends AppCompatActivity
         menuNav = navigationView.getMenu();
 
 
+        //notification channel (for oreo)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationChannel notificationChannel = new NotificationChannel("UtaiteBox Player", "UtaiteBox Player", NotificationManager.IMPORTANCE_DEFAULT);
+            notificationChannel.setDescription("channel description"); notificationChannel.enableLights(true);
+            notificationChannel.setLightColor(Color.GREEN); notificationChannel.enableVibration(true);
+            notificationChannel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
+            notificationManager.createNotificationChannel(notificationChannel);
+        }else{
+            notificationManagerc = NotificationManagerCompat.from(MainActivity.this);
+        }
+
         ///////CODE STARTS HERE
         if (ContextCompat.checkSelfPermission(MainActivity.this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -283,18 +300,28 @@ public class MainActivity extends AppCompatActivity
 
         onComplete = new BroadcastReceiver() {
 
-            public void onReceive(Context ctxt, Intent intent) {
+            public void onReceive(Context context, Intent intent) {
                 long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
                 dllist.remove(referenceId);
                 if (dllist.isEmpty())
                 {
-                    stat = new NotificationCompat.Builder(MainActivity.this, "UtaiteBox Downloader");
-                    stat.setContentTitle("우타이테 박스 다운로더")
-                            .setContentText("모든 다운로드가 완료되었습니다")
-                            .setPriority(NotificationCompat.PRIORITY_LOW)
-                            .setOngoing(false)
-                            .setSmallIcon(R.drawable.ic_notification_icon);
-                    notificationManager.notify(13155431, stat.build());
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        Notification.Builder builder = new Notification.Builder(MainActivity.this, "UtaiteBox Player")
+                                .setContentTitle("우타이테 박스 다운로더")
+                                .setContentText("모든 다운로드가 완료되었습니다")
+                                .setSmallIcon(R.drawable.ic_notification_icon)
+                                .setAutoCancel(false);
+                        notificationManager.notify(13155431, builder.build());
+                    }else {
+
+                        stat = new NotificationCompat.Builder(MainActivity.this, "UtaiteBox Downloader");
+                        stat.setContentTitle("우타이테 박스 다운로더")
+                                .setContentText("모든 다운로드가 완료되었습니다")
+                                .setPriority(NotificationCompat.PRIORITY_LOW)
+                                .setOngoing(false)
+                                .setSmallIcon(R.drawable.ic_notification_icon);
+                        notificationManagerc.notify(13155431, stat.build());
+                    }
                     Toast.makeText(getApplicationContext(), "다운로드 완료", Toast.LENGTH_SHORT).show();
                 }
 

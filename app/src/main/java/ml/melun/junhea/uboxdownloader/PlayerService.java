@@ -1,5 +1,6 @@
 package ml.melun.junhea.uboxdownloader;
 
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -8,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.wifi.WifiManager;
@@ -317,7 +319,15 @@ public class PlayerService extends Service implements MediaPlayer.OnPreparedList
 
         //android O
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel mchannel = new NotificationChannel("UtaiteBox Player","UtaiteBox Player",NotificationManager.IMPORTANCE_DEFAULT);
+            //NotificationChannel mchannel = new NotificationChannel("UtaiteBox Player","UtaiteBox Player",NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationChannel mchannel = new NotificationChannel("UtaiteBpx Player", "UtaiteBox Player", NotificationManager.IMPORTANCE_DEFAULT);
+            mchannel.setDescription("channel description");
+            mchannel.enableLights(true);
+            mchannel.setLightColor(Color.GREEN);
+            mchannel.enableVibration(true);
+            mchannel.setVibrationPattern(new long[]{100, 200, 100, 200});
+            mchannel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
         }
         notification = new NotificationCompat.Builder(this, "UtaiteBox Player")
                 .setContent(playerView)
